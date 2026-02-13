@@ -19,7 +19,7 @@ export default function App() {
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
-          contentStyle: { backgroundColor: '#0f0c29' },
+          contentStyle: { backgroundColor: '#0a1628' },
         }}
       >
         <Stack.Screen name="Home" component={HomeScreen} />

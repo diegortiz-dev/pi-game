@@ -24,6 +24,24 @@ type GameScreenProps = {
 };
 
 
+const COLORS = {
+  bgDark: '#0a1628',
+  bgCard: '#11243d',
+  gold: '#ab8b0c',
+  goldMuted: '#ab8b0c',
+  goldDark: '#7a6308',
+  blueLight: '#5b9bd5',
+  blueMuted: '#8badc9',
+  blueBorder: '#1e3a5f',
+  white: '#ffffff',
+  red: '#c0392b',
+  redBg: '#3d1a1a',
+  green: '#7ec87e',
+  yellow: '#e6c84e',
+};
+
+const MEANDER_LINE = '⸎ ◆ ⸎ ◆ ⸎ ◆ ⸎ ◆ ⸎ ◆ ⸎';
+
 const PI_DIGITS =
   '14159265358979323846264338327950288419716939937510' +
   '58209749445923078164062862089986280348253421170679' +
@@ -84,7 +102,6 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     (digit: number) => {
       if (gameOver) return;
 
-   
       if (mode === 'timer' && !started) {
         setStarted(true);
       }
@@ -92,25 +109,21 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
       const expectedDigit = parseInt(PI_DIGITS[currentIndex], 10);
 
       if (digit === expectedDigit) {
-        
         setCorrectFlash(true);
         setTimeout(() => setCorrectFlash(false), 150);
         setWrongPress(false);
         setLastWrongKey(null);
         setCurrentIndex((prev) => prev + 1);
 
-        
         setTimeout(() => {
           scrollViewRef.current?.scrollToEnd({ animated: true });
         }, 50);
       } else {
-        
         Vibration.vibrate(200);
         setWrongPress(true);
         setLastWrongKey(digit);
 
         if (mode === 'timer') {
-         
           if (timerRef.current) clearInterval(timerRef.current);
           setGameOver(true);
         }
@@ -130,23 +143,22 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
 
   const revealedDigits = PI_DIGITS.substring(0, currentIndex);
   const timerColor =
-    timeLeft > 30 ? '#51cf66' : timeLeft > 10 ? '#ffd43b' : '#ff6b6b';
+    timeLeft > 30 ? COLORS.green : timeLeft > 10 ? COLORS.yellow : COLORS.red;
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>← Voltar</Text>
+          <Text style={styles.backText}>◁ Voltar</Text>
         </TouchableOpacity>
 
         <Text style={styles.modeLabel}>
-          {mode === 'timer' ? '⏱️ Timer' : '📝 Prática'}
+          {mode === 'timer' ? '⏳ Ἀγών' : '� Μελέτη'}
         </Text>
 
         {mode === 'timer' && (
@@ -158,13 +170,16 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         )}
       </View>
 
+ 
+      <Text style={styles.meander}>{MEANDER_LINE}</Text>
+
     
       <View style={styles.scoreContainer}>
-        <Text style={styles.scoreLabel}>Dígitos</Text>
+        <Text style={styles.scoreLabel}>Dígitos de π</Text>
         <Text style={styles.scoreValue}>{currentIndex}</Text>
       </View>
 
-   
+    
       <View
         style={[
           styles.piDisplayContainer,
@@ -180,50 +195,55 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
           <Text style={styles.piText}>
             <Text style={styles.piPrefix}>3.</Text>
             <Text style={styles.piDigits}>{revealedDigits}</Text>
-            <Text style={styles.piCursor}>|</Text>
+            <Text style={styles.piCursor}>│</Text>
           </Text>
         </ScrollView>
       </View>
 
+   
       {wrongPress && mode === 'practice' && (
         <Text style={styles.wrongText}>
           ✗ Errado! Tente novamente.
         </Text>
       )}
 
-     
+      
       {gameOver && (
         <View style={styles.gameOverContainer}>
-          <Text style={styles.gameOverTitle}>Fim de Jogo!</Text>
-          <Text style={styles.gameOverScore}>
-            Você acertou {currentIndex} dígitos de π
-          </Text>
+          <Text style={styles.gameOverLaurel}>🏆</Text>
+          <Text style={styles.gameOverTitle}>Τέλος!</Text>
+          <Text style={styles.gameOverSubtitle}>Fim de Jogo</Text>
+          <View style={styles.gameOverScoreBox}>
+            <Text style={styles.gameOverScoreNumber}>{currentIndex}</Text>
+            <Text style={styles.gameOverScoreLabel}>dígitos de π</Text>
+          </View>
           {mode === 'timer' && wrongPress && (
             <Text style={styles.gameOverWrong}>
-              Você errou o dígito! O correto era{' '}
-              <Text style={{ color: '#51cf66', fontWeight: 'bold' }}>
+              Você errou! O correto era{' '}
+              <Text style={{ color: COLORS.gold, fontWeight: 'bold' }}>
                 {PI_DIGITS[currentIndex]}
               </Text>
             </Text>
           )}
+          <Text style={styles.meander}>{MEANDER_LINE}</Text>
           <View style={styles.gameOverButtons}>
             <TouchableOpacity
               style={styles.restartButton}
               onPress={handleRestart}
             >
-              <Text style={styles.restartText}>🔄 Jogar Novamente</Text>
+              <Text style={styles.restartText}>⟳ Jogar Novamente</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.homeButton}
               onPress={() => navigation.goBack()}
             >
-              <Text style={styles.homeText}>🏠 Menu</Text>
+              <Text style={styles.homeText}>�️ Menu</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      
+    
       {!gameOver && (
         <View style={styles.keyboard}>
           <View style={styles.keyboardRow}>
@@ -237,7 +257,14 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
                 onPress={() => handleDigitPress(digit)}
                 activeOpacity={0.6}
               >
-                <Text style={styles.keyText}>{digit}</Text>
+                <Text
+                  style={[
+                    styles.keyText,
+                    lastWrongKey === digit && wrongPress && styles.keyTextWrong,
+                  ]}
+                >
+                  {digit}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -252,14 +279,21 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
                 onPress={() => handleDigitPress(digit)}
                 activeOpacity={0.6}
               >
-                <Text style={styles.keyText}>{digit}</Text>
+                <Text
+                  style={[
+                    styles.keyText,
+                    lastWrongKey === digit && wrongPress && styles.keyTextWrong,
+                  ]}
+                >
+                  {digit}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
       )}
 
-      
+     
       {mode === 'timer' && !started && !gameOver && (
         <Text style={styles.startHint}>
           Pressione qualquer número para começar!
@@ -272,7 +306,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0c29',
+    backgroundColor: COLORS.bgDark,
     paddingTop: 50,
   },
   header: {
@@ -280,60 +314,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 10,
+    marginBottom: 6,
   },
   backButton: {
     padding: 8,
   },
   backText: {
-    color: '#24c6dc',
+    color: COLORS.gold,
     fontSize: 16,
     fontWeight: '600',
   },
   modeLabel: {
-    color: '#a0a0c0',
+    color: COLORS.blueMuted,
     fontSize: 16,
     fontWeight: '600',
+    letterSpacing: 1,
   },
   timerContainer: {
-    backgroundColor: '#1a1a4e',
+    backgroundColor: COLORS.bgCard,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.goldDark,
   },
   timerText: {
     fontSize: 20,
     fontWeight: 'bold',
   },
+  meander: {
+    fontSize: 12,
+    color: COLORS.goldMuted,
+    letterSpacing: 4,
+    textAlign: 'center',
+    marginVertical: 6,
+    opacity: 0.5,
+  },
   scoreContainer: {
     alignItems: 'center',
-    marginVertical: 16,
+    marginVertical: 12,
   },
   scoreLabel: {
-    color: '#a0a0c0',
+    color: COLORS.blueMuted,
     fontSize: 14,
     marginBottom: 4,
+    letterSpacing: 1,
   },
   scoreValue: {
-    color: '#24c6dc',
+    color: COLORS.gold,
     fontSize: 48,
     fontWeight: 'bold',
   },
   piDisplayContainer: {
     marginHorizontal: 20,
-    backgroundColor: '#1a1a4e',
-    borderRadius: 16,
+    backgroundColor: COLORS.bgCard,
+    borderRadius: 4,
     padding: 20,
     minHeight: 120,
     maxHeight: 180,
     borderWidth: 2,
-    borderColor: '#302b63',
+    borderColor: COLORS.blueBorder,
   },
   piDisplayWrong: {
-    borderColor: '#ff6b6b',
+    borderColor: COLORS.red,
   },
   piDisplayCorrect: {
-    borderColor: '#51cf66',
+    borderColor: COLORS.gold,
   },
   piScroll: {
     flex: 1,
@@ -348,23 +394,23 @@ const styles = StyleSheet.create({
   },
   piPrefix: {
     fontSize: 28,
-    color: '#ffffff',
+    color: COLORS.white,
     fontWeight: 'bold',
     fontFamily: 'monospace',
   },
   piDigits: {
     fontSize: 28,
-    color: '#24c6dc',
+    color: COLORS.blueLight,
     fontFamily: 'monospace',
     letterSpacing: 2,
   },
   piCursor: {
     fontSize: 28,
-    color: '#ff6b6b',
+    color: COLORS.gold,
     fontFamily: 'monospace',
   },
   wrongText: {
-    color: '#ff6b6b',
+    color: COLORS.red,
     fontSize: 16,
     textAlign: 'center',
     marginTop: 12,
@@ -386,24 +432,27 @@ const styles = StyleSheet.create({
   key: {
     width: KEY_SIZE,
     height: KEY_SIZE,
-    borderRadius: KEY_SIZE / 2,
-    backgroundColor: '#302b63',
+    borderRadius: 4,
+    backgroundColor: COLORS.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
-    borderColor: '#4a4580',
+    borderColor: COLORS.goldDark,
   },
   keyWrong: {
-    borderColor: '#ff6b6b',
-    backgroundColor: '#4a1a2e',
+    borderColor: COLORS.red,
+    backgroundColor: COLORS.redBg,
   },
   keyText: {
     fontSize: 28,
-    color: '#ffffff',
+    color: COLORS.white,
     fontWeight: 'bold',
   },
+  keyTextWrong: {
+    color: COLORS.red,
+  },
   startHint: {
-    color: '#ffd43b',
+    color: COLORS.goldMuted,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 16,
@@ -415,28 +464,52 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(15, 12, 41, 0.95)',
+    backgroundColor: 'rgba(10, 22, 40, 0.97)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
     paddingHorizontal: 30,
   },
-  gameOverTitle: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 16,
-  },
-  gameOverScore: {
-    fontSize: 20,
-    color: '#24c6dc',
+  gameOverLaurel: {
+    fontSize: 64,
     marginBottom: 10,
-    textAlign: 'center',
+  },
+  gameOverTitle: {
+    fontSize: 44,
+    fontWeight: 'bold',
+    color: COLORS.gold,
+    marginBottom: 4,
+    letterSpacing: 4,
+  },
+  gameOverSubtitle: {
+    fontSize: 18,
+    color: COLORS.blueMuted,
+    marginBottom: 20,
+  },
+  gameOverScoreBox: {
+    backgroundColor: COLORS.bgCard,
+    borderWidth: 2,
+    borderColor: COLORS.gold,
+    borderRadius: 4,
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  gameOverScoreNumber: {
+    fontSize: 56,
+    fontWeight: 'bold',
+    color: COLORS.gold,
+  },
+  gameOverScoreLabel: {
+    fontSize: 14,
+    color: COLORS.blueMuted,
+    letterSpacing: 1,
   },
   gameOverWrong: {
     fontSize: 16,
-    color: '#ff6b6b',
-    marginBottom: 30,
+    color: COLORS.red,
+    marginBottom: 16,
     textAlign: 'center',
   },
   gameOverButtons: {
@@ -445,27 +518,27 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   restartButton: {
-    backgroundColor: '#24c6dc',
+    backgroundColor: COLORS.gold,
     paddingVertical: 16,
-    borderRadius: 14,
+    borderRadius: 4,
     alignItems: 'center',
   },
   restartText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#0f0c29',
+    color: COLORS.bgDark,
   },
   homeButton: {
-    backgroundColor: '#302b63',
+    backgroundColor: COLORS.bgCard,
     paddingVertical: 16,
-    borderRadius: 14,
+    borderRadius: 4,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#4a4580',
+    borderColor: COLORS.blueBorder,
   },
   homeText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#ffffff',
+    color: COLORS.white,
   },
 });
