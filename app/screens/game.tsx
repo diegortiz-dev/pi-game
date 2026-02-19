@@ -4,19 +4,17 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   ScrollView,
-  Alert,
   Vibration,
+  useWindowDimensions,
+  BackHandler,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-
-type RootStackParamList = {
-  Home: undefined;
-  Game: { mode: 'timer' | 'practice' };
-};
+import type { RootStackParamList } from '../types';
 
 type GameScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Game'>;
@@ -40,7 +38,6 @@ const COLORS = {
   yellow: '#e6c84e',
 };
 
-const MEANDER_LINE = '⸎ ◆ ⸎ ◆ ⸎ ◆ ⸎ ◆ ⸎ ◆ ⸎';
 
 const PI_DIGITS =
   '14159265358979323846264338327950288419716939937510' +
@@ -64,21 +61,55 @@ const PI_DIGITS =
   '59825349042875546873115956286388235378759375195778' +
   '18577805321712268066130019278766111959092164201989';
 
-const { width } = Dimensions.get('window');
-const KEY_SIZE = (width - 80) / 5;
 const TIMER_DURATION = 60;
+
+const HIGH_SCORE_KEY = '@pi_game_high_score';
+const HIGH_SCORE_PRACTICE_KEY = '@pi_game_high_score_practice';
 
 export default function GameScreen({ navigation, route }: GameScreenProps) {
   const { mode } = route.params;
+  const { width } = useWindowDimensions();
+  const KEY_SIZE = Math.min((width - 60) / 3, 85);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [hintsUsed, setHintsUsed] = useState(0);
   const [timeLeft, setTimeLeft] = useState(TIMER_DURATION);
   const [gameOver, setGameOver] = useState(false);
   const [wrongPress, setWrongPress] = useState(false);
   const [lastWrongKey, setLastWrongKey] = useState<number | null>(null);
   const [correctFlash, setCorrectFlash] = useState(false);
+  const [highScore, setHighScore] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [started, setStarted] = useState(mode === 'practice');
+
+  // Load high score on mount
+  useEffect(() => {
+    const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
+    AsyncStorage.getItem(key).then((val) => {
+      if (val) setHighScore(parseInt(val, 10));
+    });
+  }, [mode]);
+
+  // Save high score when game ends
+  useEffect(() => {
+    if (gameOver && currentIndex > highScore) {
+      const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
+      setHighScore(currentIndex);
+      AsyncStorage.setItem(key, currentIndex.toString());
+    }
+  }, [gameOver]);
+
+  // Android back button confirmation during active game
+  useEffect(() => {
+    const handler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!gameOver && currentIndex > 0) {
+        navigation.goBack();
+        return true;
+      }
+      return false;
+    });
+    return () => handler.remove();
+  }, [gameOver, currentIndex, navigation]);
 
   useEffect(() => {
     if (mode === 'timer' && started && !gameOver) {
@@ -132,6 +163,26 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     [currentIndex, gameOver, mode, started]
   );
 
+  const handleHint = useCallback(() => {
+    if (gameOver) return;
+
+    if (mode === 'timer' && !started) {
+      setStarted(true);
+    }
+
+    const expectedDigit = parseInt(PI_DIGITS[currentIndex], 10);
+    setCorrectFlash(true);
+    setTimeout(() => setCorrectFlash(false), 150);
+    setWrongPress(false);
+    setLastWrongKey(null);
+    setHintsUsed((prev) => prev + 1);
+    setCurrentIndex((prev) => prev + 1);
+
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+  }, [currentIndex, gameOver, mode, started]);
+
   const handleRestart = () => {
     setCurrentIndex(0);
     setTimeLeft(TIMER_DURATION);
@@ -139,14 +190,45 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     setWrongPress(false);
     setLastWrongKey(null);
     setStarted(mode === 'practice');
+    setHintsUsed(0);
+    // Reload high score in case it was updated
+    const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
+    AsyncStorage.getItem(key).then((val) => {
+      if (val) setHighScore(parseInt(val, 10));
+    });
   };
 
   const revealedDigits = PI_DIGITS.substring(0, currentIndex);
+
+  // Format digits into fixed lines: first line 14 digits (after "3."), then 16 per line
+  const DIGITS_FIRST_LINE = 14;
+  const DIGITS_PER_LINE = 16;
+  const formatDigits = () => {
+    const lines: string[] = [];
+    if (revealedDigits.length <= DIGITS_FIRST_LINE) {
+      return revealedDigits;
+    }
+    lines.push(revealedDigits.substring(0, DIGITS_FIRST_LINE));
+    let remaining = revealedDigits.substring(DIGITS_FIRST_LINE);
+    while (remaining.length > 0) {
+      lines.push(remaining.substring(0, DIGITS_PER_LINE));
+      remaining = remaining.substring(DIGITS_PER_LINE);
+    }
+    return lines.join('\n');
+  };
+
   const timerColor =
     timeLeft > 30 ? COLORS.green : timeLeft > 10 ? COLORS.yellow : COLORS.red;
 
+  const dynamicStyles = {
+    key: {
+      width: KEY_SIZE,
+      height: KEY_SIZE,
+    },
+  };
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
       <View style={styles.header}>
@@ -154,11 +236,11 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>◁ Voltar</Text>
+          <Text style={styles.backText}>← Voltar</Text>
         </TouchableOpacity>
 
         <Text style={styles.modeLabel}>
-          {mode === 'timer' ? '⏳ Ἀγών' : '� Μελέτη'}
+          {mode === 'timer' ? '⏳ Desafio' : '📖 Prática'}
         </Text>
 
         {mode === 'timer' && (
@@ -170,13 +252,18 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         )}
       </View>
 
- 
-      <Text style={styles.meander}>{MEANDER_LINE}</Text>
+
 
     
       <View style={styles.scoreContainer}>
         <Text style={styles.scoreLabel}>Dígitos de π</Text>
         <Text style={styles.scoreValue}>{currentIndex}</Text>
+        {highScore > 0 && (
+          <Text style={styles.highScoreText}>🏆 Recorde: {highScore}</Text>
+        )}
+        {hintsUsed > 0 && (
+          <Text style={styles.hintsUsedText}>💡 Dicas: {hintsUsed}</Text>
+        )}
       </View>
 
     
@@ -192,11 +279,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
           style={styles.piScroll}
           contentContainerStyle={styles.piScrollContent}
         >
-          <Text style={styles.piText}>
-            <Text style={styles.piPrefix}>3.</Text>
-            <Text style={styles.piDigits}>{revealedDigits}</Text>
-            <Text style={styles.piCursor}>│</Text>
-          </Text>
+          <Text style={styles.piPrefix}>3.{currentIndex <= 14 ? '' : '\n'}{formatDigits()}<Text style={styles.piCursor}>│</Text></Text>
         </ScrollView>
       </View>
 
@@ -211,12 +294,21 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
       {gameOver && (
         <View style={styles.gameOverContainer}>
           <Text style={styles.gameOverLaurel}>🏆</Text>
-          <Text style={styles.gameOverTitle}>Τέλος!</Text>
+          <Text style={styles.gameOverTitle}>MUITO BEM!</Text>
           <Text style={styles.gameOverSubtitle}>Fim de Jogo</Text>
           <View style={styles.gameOverScoreBox}>
             <Text style={styles.gameOverScoreNumber}>{currentIndex}</Text>
             <Text style={styles.gameOverScoreLabel}>dígitos de π</Text>
           </View>
+          {hintsUsed > 0 && (
+            <Text style={styles.hintsUsedGameOver}>💡 Dicas usadas: {hintsUsed}</Text>
+          )}
+          {currentIndex >= highScore && currentIndex > 0 && (
+            <Text style={styles.newRecordText}>🎉 Novo Recorde!</Text>
+          )}
+          {highScore > 0 && currentIndex < highScore && (
+            <Text style={styles.highScoreGameOver}>🏆 Recorde: {highScore}</Text>
+          )}
           {mode === 'timer' && wrongPress && (
             <Text style={styles.gameOverWrong}>
               Você errou! O correto era{' '}
@@ -225,19 +317,19 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
               </Text>
             </Text>
           )}
-          <Text style={styles.meander}>{MEANDER_LINE}</Text>
+       
           <View style={styles.gameOverButtons}>
             <TouchableOpacity
               style={styles.restartButton}
               onPress={handleRestart}
             >
-              <Text style={styles.restartText}>⟳ Jogar Novamente</Text>
+              <Text style={styles.restartText}>Jogar Novamente</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.homeButton}
               onPress={() => navigation.goBack()}
             >
-              <Text style={styles.homeText}>�️ Menu</Text>
+              <Text style={styles.homeText}>Menu</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -246,49 +338,58 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     
       {!gameOver && (
         <View style={styles.keyboard}>
-          <View style={styles.keyboardRow}>
-            {[1, 2, 3, 4, 5].map((digit) => (
-              <TouchableOpacity
-                key={digit}
-                style={[
-                  styles.key,
-                  lastWrongKey === digit && wrongPress && styles.keyWrong,
-                ]}
-                onPress={() => handleDigitPress(digit)}
-                activeOpacity={0.6}
-              >
-                <Text
+          {[[1, 2, 3], [4, 5, 6], [7, 8, 9]].map((row, rowIndex) => (
+            <View key={rowIndex} style={styles.keyboardRow}>
+              {row.map((digit) => (
+                <TouchableOpacity
+                  key={digit}
                   style={[
-                    styles.keyText,
-                    lastWrongKey === digit && wrongPress && styles.keyTextWrong,
+                    styles.key,
+                    dynamicStyles.key,
+                    lastWrongKey === digit && wrongPress && styles.keyWrong,
                   ]}
+                  onPress={() => handleDigitPress(digit)}
+                  activeOpacity={0.6}
                 >
-                  {digit}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                  <Text
+                    style={[
+                      styles.keyText,
+                      lastWrongKey === digit && wrongPress && styles.keyTextWrong,
+                    ]}
+                  >
+                    {digit}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ))}
           <View style={styles.keyboardRow}>
-            {[6, 7, 8, 9, 0].map((digit) => (
-              <TouchableOpacity
-                key={digit}
+            <TouchableOpacity
+              style={[styles.key, dynamicStyles.key, styles.hintKey]}
+              onPress={handleHint}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.hintKeyText}>Dica</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.key,
+                dynamicStyles.key,
+                lastWrongKey === 0 && wrongPress && styles.keyWrong,
+              ]}
+              onPress={() => handleDigitPress(0)}
+              activeOpacity={0.6}
+            >
+              <Text
                 style={[
-                  styles.key,
-                  lastWrongKey === digit && wrongPress && styles.keyWrong,
+                  styles.keyText,
+                  lastWrongKey === 0 && wrongPress && styles.keyTextWrong,
                 ]}
-                onPress={() => handleDigitPress(digit)}
-                activeOpacity={0.6}
               >
-                <Text
-                  style={[
-                    styles.keyText,
-                    lastWrongKey === digit && wrongPress && styles.keyTextWrong,
-                  ]}
-                >
-                  {digit}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                0
+              </Text>
+            </TouchableOpacity>
+            <View style={[dynamicStyles.key, { opacity: 0 }]} />
           </View>
         </View>
       )}
@@ -299,7 +400,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
           Pressione qualquer número para começar!
         </Text>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -307,7 +408,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.bgDark,
-    paddingTop: 50,
   },
   header: {
     flexDirection: 'row',
@@ -334,7 +434,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgCard,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 4,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.goldDark,
   },
@@ -365,14 +465,26 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: 'bold',
   },
+  highScoreText: {
+    color: COLORS.goldMuted,
+    fontSize: 14,
+    marginTop: 4,
+    opacity: 0.8,
+  },
+  hintsUsedText: {
+    color: COLORS.blueMuted,
+    fontSize: 13,
+    marginTop: 2,
+    opacity: 0.7,
+  },
   piDisplayContainer: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     backgroundColor: COLORS.bgCard,
-    borderRadius: 4,
-    padding: 20,
-    minHeight: 120,
-    maxHeight: 180,
-    borderWidth: 2,
+    borderRadius: 12,
+    padding: 16,
+    flex: 1,
+    marginBottom: 10,
+    borderWidth: 1.5,
     borderColor: COLORS.blueBorder,
   },
   piDisplayWrong: {
@@ -386,26 +498,24 @@ const styles = StyleSheet.create({
   },
   piScrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
   },
   piText: {
-    flexWrap: 'wrap',
-    flexDirection: 'row',
   },
   piPrefix: {
-    fontSize: 28,
-    color: COLORS.white,
+    fontSize: 22,
+    color: COLORS.blueLight,
     fontWeight: 'bold',
     fontFamily: 'monospace',
+    lineHeight: 32,
   },
   piDigits: {
-    fontSize: 28,
+    fontSize: 22,
     color: COLORS.blueLight,
     fontFamily: 'monospace',
-    letterSpacing: 2,
+    lineHeight: 32,
   },
   piCursor: {
-    fontSize: 28,
+    fontSize: 22,
     color: COLORS.gold,
     fontFamily: 'monospace',
   },
@@ -417,34 +527,39 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   keyboard: {
-    position: 'absolute',
-    bottom: 50,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    gap: 12,
+    paddingHorizontal: 25,
+    gap: 15,
+    paddingBottom: 16,
+    marginTop: 'auto',
   },
   keyboardRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 10,
+    gap: 15,
   },
   key: {
-    width: KEY_SIZE,
-    height: KEY_SIZE,
-    borderRadius: 4,
+    borderRadius: 12,
     backgroundColor: COLORS.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: COLORS.goldDark,
   },
   keyWrong: {
     borderColor: COLORS.red,
     backgroundColor: COLORS.redBg,
   },
+  hintKey: {
+    borderColor: COLORS.blueBorder,
+    backgroundColor: COLORS.bgCard,
+  },
+  hintKeyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.blueLight,
+  },
   keyText: {
-    fontSize: 28,
+    fontSize: 26,
     color: COLORS.white,
     fontWeight: 'bold',
   },
@@ -490,7 +605,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgCard,
     borderWidth: 2,
     borderColor: COLORS.gold,
-    borderRadius: 4,
+    borderRadius: 12,
     paddingHorizontal: 40,
     paddingVertical: 16,
     alignItems: 'center',
@@ -512,6 +627,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
+  newRecordText: {
+    fontSize: 20,
+    color: COLORS.gold,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  highScoreGameOver: {
+    fontSize: 16,
+    color: COLORS.goldMuted,
+    marginBottom: 12,
+    opacity: 0.8,
+  },
+  hintsUsedGameOver: {
+    fontSize: 15,
+    color: COLORS.blueMuted,
+    marginBottom: 8,
+    opacity: 0.8,
+  },
   gameOverButtons: {
     gap: 14,
     width: '100%',
@@ -520,7 +654,7 @@ const styles = StyleSheet.create({
   restartButton: {
     backgroundColor: COLORS.gold,
     paddingVertical: 16,
-    borderRadius: 4,
+    borderRadius: 12,
     alignItems: 'center',
   },
   restartText: {
@@ -531,7 +665,7 @@ const styles = StyleSheet.create({
   homeButton: {
     backgroundColor: COLORS.bgCard,
     paddingVertical: 16,
-    borderRadius: 4,
+    borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.blueBorder,
