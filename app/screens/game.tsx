@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -227,6 +228,17 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     },
   };
 
+  const renderLabel = (
+    iconName: React.ComponentProps<typeof Ionicons>['name'],
+    label: string,
+    color: string
+  ) => (
+    <View style={styles.labelRow}>
+      <Ionicons name={iconName} size={18} color={color} />
+      <Text style={[styles.labelRowText, { color }]}>{label}</Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
@@ -236,15 +248,17 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>← Voltar</Text>
+          <Ionicons name="arrow-back" size={18} color={COLORS.gold} />
+          <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
 
-        <Text style={styles.modeLabel}>
-          {mode === 'timer' ? '⏳ Desafio' : '📖 Prática'}
-        </Text>
+        {mode === 'timer'
+          ? renderLabel('hourglass-outline', 'Desafio', COLORS.blueMuted)
+          : renderLabel('book-outline', 'Prática', COLORS.blueMuted)}
 
         {mode === 'timer' && (
           <View style={styles.timerContainer}>
+            <Ionicons name="time-outline" size={18} color={timerColor} />
             <Text style={[styles.timerText, { color: timerColor }]}>
               {timeLeft}s
             </Text>
@@ -259,10 +273,16 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         <Text style={styles.scoreLabel}>Dígitos de π</Text>
         <Text style={styles.scoreValue}>{currentIndex}</Text>
         {highScore > 0 && (
-          <Text style={styles.highScoreText}>🏆 Recorde: {highScore}</Text>
+          <View style={styles.infoRow}>
+            <Ionicons name="trophy-outline" size={16} color={COLORS.goldMuted} />
+            <Text style={styles.highScoreText}>Recorde: {highScore}</Text>
+          </View>
         )}
         {hintsUsed > 0 && (
-          <Text style={styles.hintsUsedText}>💡 Dicas: {hintsUsed}</Text>
+          <View style={styles.infoRow}>
+            <Ionicons name="bulb-outline" size={16} color={COLORS.blueMuted} />
+            <Text style={styles.hintsUsedText}>Dicas: {hintsUsed}</Text>
+          </View>
         )}
       </View>
 
@@ -285,15 +305,16 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
 
    
       {wrongPress && mode === 'practice' && (
-        <Text style={styles.wrongText}>
-          ✗ Errado! Tente novamente.
-        </Text>
+        <View style={styles.wrongRow}>
+          <Ionicons name="close-circle-outline" size={18} color={COLORS.red} />
+          <Text style={styles.wrongText}>Errado! Tente novamente.</Text>
+        </View>
       )}
 
       
       {gameOver && (
         <View style={styles.gameOverContainer}>
-          <Text style={styles.gameOverLaurel}>🏆</Text>
+          <Ionicons name="trophy" size={64} color={COLORS.gold} style={styles.gameOverLaurel} />
           <Text style={styles.gameOverTitle}>MUITO BEM!</Text>
           <Text style={styles.gameOverSubtitle}>Fim de Jogo</Text>
           <View style={styles.gameOverScoreBox}>
@@ -301,13 +322,22 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
             <Text style={styles.gameOverScoreLabel}>dígitos de π</Text>
           </View>
           {hintsUsed > 0 && (
-            <Text style={styles.hintsUsedGameOver}>💡 Dicas usadas: {hintsUsed}</Text>
+            <View style={styles.infoRow}>
+              <Ionicons name="bulb-outline" size={16} color={COLORS.blueMuted} />
+              <Text style={styles.hintsUsedGameOver}>Dicas usadas: {hintsUsed}</Text>
+            </View>
           )}
           {currentIndex >= highScore && currentIndex > 0 && (
-            <Text style={styles.newRecordText}>🎉 Novo Recorde!</Text>
+            <View style={styles.infoRow}>
+              <Ionicons name="sparkles-outline" size={16} color={COLORS.gold} />
+              <Text style={styles.newRecordText}>Novo Recorde!</Text>
+            </View>
           )}
           {highScore > 0 && currentIndex < highScore && (
-            <Text style={styles.highScoreGameOver}>🏆 Recorde: {highScore}</Text>
+            <View style={styles.infoRow}>
+              <Ionicons name="trophy-outline" size={16} color={COLORS.goldMuted} />
+              <Text style={styles.highScoreGameOver}>Recorde: {highScore}</Text>
+            </View>
           )}
           {mode === 'timer' && wrongPress && (
             <Text style={styles.gameOverWrong}>
@@ -418,17 +448,14 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   backText: {
     color: COLORS.gold,
     fontSize: 16,
     fontWeight: '600',
-  },
-  modeLabel: {
-    color: COLORS.blueMuted,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 1,
   },
   timerContainer: {
     backgroundColor: COLORS.bgCard,
@@ -437,18 +464,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.goldDark,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   timerText: {
     fontSize: 20,
     fontWeight: 'bold',
   },
-  meander: {
-    fontSize: 12,
-    color: COLORS.goldMuted,
-    letterSpacing: 4,
-    textAlign: 'center',
-    marginVertical: 6,
-    opacity: 0.5,
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  labelRowText: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   scoreContainer: {
     alignItems: 'center',
@@ -476,6 +508,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
     opacity: 0.7,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
   },
   piDisplayContainer: {
     marginHorizontal: 16,
@@ -523,8 +561,14 @@ const styles = StyleSheet.create({
     color: COLORS.red,
     fontSize: 16,
     textAlign: 'center',
-    marginTop: 12,
     fontWeight: '600',
+  },
+  wrongRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   keyboard: {
     paddingHorizontal: 25,
@@ -586,7 +630,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   },
   gameOverLaurel: {
-    fontSize: 64,
     marginBottom: 10,
   },
   gameOverTitle: {
@@ -643,7 +686,6 @@ const styles = StyleSheet.create({
   hintsUsedGameOver: {
     fontSize: 15,
     color: COLORS.blueMuted,
-    marginBottom: 8,
     opacity: 0.8,
   },
   gameOverButtons: {
