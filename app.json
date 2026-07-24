@@ -16,7 +16,11 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.pigame.app",
+      "package": "com.diegoortiz.pigame",
+      "versionCode": 1,
+      "permissions": [
+        "VIBRATE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a1628"

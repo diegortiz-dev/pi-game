@@ -8,11 +8,13 @@ import {
   Vibration,
   useWindowDimensions,
   BackHandler,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../types';
@@ -21,7 +23,6 @@ type GameScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Game'>;
   route: RouteProp<RootStackParamList, 'Game'>;
 };
-
 
 const COLORS = {
   bgDark: '#0a1628',
@@ -38,7 +39,6 @@ const COLORS = {
   green: '#7ec87e',
   yellow: '#e6c84e',
 };
-
 
 const PI_DIGITS =
   '14159265358979323846264338327950288419716939937510' +
@@ -66,6 +66,8 @@ const TIMER_DURATION = 60;
 
 const HIGH_SCORE_KEY = '@pi_game_high_score';
 const HIGH_SCORE_PRACTICE_KEY = '@pi_game_high_score_practice';
+const TOTAL_DIGITS_KEY = '@pi_game_total_digits';
+const TOTAL_GAMES_KEY = '@pi_game_total_games';
 
 export default function GameScreen({ navigation, route }: GameScreenProps) {
   const { mode } = route.params;
@@ -91,12 +93,32 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     });
   }, [mode]);
 
-  // Save high score when game ends
+  // Save high score and update cumulative total stats when game ends
   useEffect(() => {
-    if (gameOver && currentIndex > highScore) {
-      const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
-      setHighScore(currentIndex);
-      AsyncStorage.setItem(key, currentIndex.toString());
+    if (gameOver) {
+      // Incrementar partidas jogadas
+      AsyncStorage.getItem(TOTAL_GAMES_KEY).then((val) => {
+        const total = val ? parseInt(val, 10) + 1 : 1;
+        AsyncStorage.setItem(TOTAL_GAMES_KEY, total.toString());
+      });
+
+      // Incrementar total de dígitos digitados nesta sessão
+      if (currentIndex > 0) {
+        AsyncStorage.getItem(TOTAL_DIGITS_KEY).then((val) => {
+          const total = val ? parseInt(val, 10) + currentIndex : currentIndex;
+          AsyncStorage.setItem(TOTAL_DIGITS_KEY, total.toString());
+        });
+      }
+
+      // Salvar recorde pessoal
+      if (currentIndex > highScore) {
+        const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
+        setHighScore(currentIndex);
+        AsyncStorage.setItem(key, currentIndex.toString());
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {}
+      }
     }
   }, [gameOver]);
 
@@ -130,6 +152,22 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     };
   }, [mode, started, gameOver]);
 
+  const triggerLightHaptic = () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      Vibration.vibrate(30);
+    }
+  };
+
+  const triggerErrorHaptic = () => {
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } catch {
+      Vibration.vibrate(200);
+    }
+  };
+
   const handleDigitPress = useCallback(
     (digit: number) => {
       if (gameOver) return;
@@ -141,6 +179,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
       const expectedDigit = parseInt(PI_DIGITS[currentIndex], 10);
 
       if (digit === expectedDigit) {
+        triggerLightHaptic();
         setCorrectFlash(true);
         setTimeout(() => setCorrectFlash(false), 150);
         setWrongPress(false);
@@ -151,7 +190,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
           scrollViewRef.current?.scrollToEnd({ animated: true });
         }, 50);
       } else {
-        Vibration.vibrate(200);
+        triggerErrorHaptic();
         setWrongPress(true);
         setLastWrongKey(digit);
 
@@ -171,7 +210,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
       setStarted(true);
     }
 
-    const expectedDigit = parseInt(PI_DIGITS[currentIndex], 10);
+    triggerLightHaptic();
     setCorrectFlash(true);
     setTimeout(() => setCorrectFlash(false), 150);
     setWrongPress(false);
@@ -192,16 +231,25 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     setLastWrongKey(null);
     setStarted(mode === 'practice');
     setHintsUsed(0);
-    // Reload high score in case it was updated
     const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
     AsyncStorage.getItem(key).then((val) => {
       if (val) setHighScore(parseInt(val, 10));
     });
   };
 
+  const handleShareScore = async () => {
+    try {
+      await Share.share({
+        message: `🏆 Consegui memorizar ${currentIndex} dígitos de π no π-Game! Tente me superar! 🥧✨`,
+      });
+    } catch (error) {
+      console.log('Erro ao compartilhar:', error);
+    }
+  };
+
   const revealedDigits = PI_DIGITS.substring(0, currentIndex);
 
-  // Format digits into fixed lines: first line 14 digits (after "3."), then 16 per line
+  // Formata dígitos organizados em linhas e pequenos grupos
   const DIGITS_FIRST_LINE = 14;
   const DIGITS_PER_LINE = 16;
   const formatDigits = () => {
@@ -266,9 +314,6 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         )}
       </View>
 
-
-
-    
       <View style={styles.scoreContainer}>
         <Text style={styles.scoreLabel}>Dígitos de π</Text>
         <Text style={styles.scoreValue}>{currentIndex}</Text>
@@ -286,7 +331,6 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         )}
       </View>
 
-    
       <View
         style={[
           styles.piDisplayContainer,
@@ -299,11 +343,14 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
           style={styles.piScroll}
           contentContainerStyle={styles.piScrollContent}
         >
-          <Text style={styles.piPrefix}>3.{currentIndex <= 14 ? '' : '\n'}{formatDigits()}<Text style={styles.piCursor}>│</Text></Text>
+          <Text style={styles.piPrefix}>
+            3.{currentIndex <= 14 ? '' : '\n'}
+            {formatDigits()}
+            <Text style={styles.piCursor}>│</Text>
+          </Text>
         </ScrollView>
       </View>
 
-   
       {wrongPress && mode === 'practice' && (
         <View style={styles.wrongRow}>
           <Ionicons name="close-circle-outline" size={18} color={COLORS.red} />
@@ -311,16 +358,21 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         </View>
       )}
 
-      
       {gameOver && (
         <View style={styles.gameOverContainer}>
-          <Ionicons name="trophy" size={64} color={COLORS.gold} style={styles.gameOverLaurel} />
+          <Ionicons
+            name="trophy"
+            size={64}
+            color={COLORS.gold}
+            style={styles.gameOverLaurel}
+          />
           <Text style={styles.gameOverTitle}>MUITO BEM!</Text>
           <Text style={styles.gameOverSubtitle}>Fim de Jogo</Text>
           <View style={styles.gameOverScoreBox}>
             <Text style={styles.gameOverScoreNumber}>{currentIndex}</Text>
             <Text style={styles.gameOverScoreLabel}>dígitos de π</Text>
           </View>
+
           {hintsUsed > 0 && (
             <View style={styles.infoRow}>
               <Ionicons name="bulb-outline" size={16} color={COLORS.blueMuted} />
@@ -347,7 +399,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
               </Text>
             </Text>
           )}
-       
+
           <View style={styles.gameOverButtons}>
             <TouchableOpacity
               style={styles.restartButton}
@@ -355,6 +407,15 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
             >
               <Text style={styles.restartText}>Jogar Novamente</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.shareButton}
+              onPress={handleShareScore}
+            >
+              <Ionicons name="share-social-outline" size={20} color={COLORS.white} />
+              <Text style={styles.shareText}>Compartilhar Recorde</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.homeButton}
               onPress={() => navigation.goBack()}
@@ -365,7 +426,6 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         </View>
       )}
 
-    
       {!gameOver && (
         <View style={styles.keyboard}>
           {[[1, 2, 3], [4, 5, 6], [7, 8, 9]].map((row, rowIndex) => (
@@ -424,7 +484,6 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         </View>
       )}
 
-     
       {mode === 'timer' && !started && !gameOver && (
         <Text style={styles.startHint}>
           Pressione qualquer número para começar!
@@ -537,18 +596,10 @@ const styles = StyleSheet.create({
   piScrollContent: {
     flexGrow: 1,
   },
-  piText: {
-  },
   piPrefix: {
     fontSize: 22,
     color: COLORS.blueLight,
     fontWeight: 'bold',
-    fontFamily: 'monospace',
-    lineHeight: 32,
-  },
-  piDigits: {
-    fontSize: 22,
-    color: COLORS.blueLight,
     fontFamily: 'monospace',
     lineHeight: 32,
   },
@@ -689,9 +740,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   gameOverButtons: {
-    gap: 14,
+    gap: 12,
     width: '100%',
-    marginTop: 20,
+    marginTop: 16,
   },
   restartButton: {
     backgroundColor: COLORS.gold,
@@ -704,16 +755,32 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.bgDark,
   },
+  shareButton: {
+    backgroundColor: COLORS.bgCard,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+  },
+  shareText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.white,
+  },
   homeButton: {
     backgroundColor: COLORS.bgCard,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.blueBorder,
   },
   homeText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.white,
   },
