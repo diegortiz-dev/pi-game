@@ -103,6 +103,27 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       icon: 'flash-outline',
       unlocked: timerScore >= 20,
     },
+    {
+      id: 'practice_scholar',
+      title: 'Estudioso',
+      description: 'Acerte 15 dígitos no modo Prática',
+      icon: 'book-outline',
+      unlocked: practiceScore >= 15,
+    },
+    {
+      id: 'dedicated_player',
+      title: 'Dedicado',
+      description: 'Jogue 10 partidas no total',
+      icon: 'game-controller-outline',
+      unlocked: totalGames >= 10,
+    },
+    {
+      id: 'digit_master',
+      title: 'Contador de π',
+      description: 'Digite 100 dígitos no total',
+      icon: 'calculator-outline',
+      unlocked: totalDigits >= 100,
+    },
   ];
 
   const unlockedCount = achievements.filter((a) => a.unlocked).length;

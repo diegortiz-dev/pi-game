@@ -70,42 +70,76 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [started, setStarted] = useState(mode === 'practice');
 
-  // Load high score on mount
+  const highScoreRef = useRef(0);
+  const totalDigitsRef = useRef(0);
+  const totalGamesRef = useRef(0);
+  const hasCountedGameRef = useRef(false);
+
+  // Load high score and cumulative stats on mount
   useEffect(() => {
     const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
-    AsyncStorage.getItem(key).then((val) => {
-      if (val) setHighScore(parseInt(val, 10));
+    Promise.all([
+      AsyncStorage.getItem(key),
+      AsyncStorage.getItem(TOTAL_DIGITS_KEY),
+      AsyncStorage.getItem(TOTAL_GAMES_KEY),
+    ]).then(([hsVal, digitsVal, gamesVal]) => {
+      if (hsVal) {
+        const hs = parseInt(hsVal, 10);
+        setHighScore(hs);
+        highScoreRef.current = hs;
+      }
+      if (digitsVal) {
+        totalDigitsRef.current = parseInt(digitsVal, 10);
+      }
+      if (gamesVal) {
+        totalGamesRef.current = parseInt(gamesVal, 10);
+      }
     });
   }, [mode]);
 
-  // Save high score and update cumulative total stats when game ends
+  const markGamePlayed = useCallback(() => {
+    if (!hasCountedGameRef.current) {
+      hasCountedGameRef.current = true;
+      totalGamesRef.current += 1;
+      AsyncStorage.setItem(TOTAL_GAMES_KEY, totalGamesRef.current.toString()).catch((err) =>
+        console.error('Erro ao salvar total_games:', err)
+      );
+    }
+  }, []);
+
+  const recordCorrectProgress = useCallback(
+    (newIndex: number) => {
+      markGamePlayed();
+
+      // Incrementar total de dígitos pressionados
+      totalDigitsRef.current += 1;
+      AsyncStorage.setItem(TOTAL_DIGITS_KEY, totalDigitsRef.current.toString()).catch((err) =>
+        console.error('Erro ao salvar total_digits:', err)
+      );
+
+      // Atualizar recorde da modalidade em tempo real
+      if (newIndex > highScoreRef.current) {
+        highScoreRef.current = newIndex;
+        setHighScore(newIndex);
+        const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
+        AsyncStorage.setItem(key, newIndex.toString()).catch((err) =>
+          console.error('Erro ao salvar high_score:', err)
+        );
+      }
+    },
+    [markGamePlayed, mode]
+  );
+
+  // Haptic feedback when game over happens with a new record
   useEffect(() => {
     if (gameOver) {
-      // Incrementar partidas jogadas
-      AsyncStorage.getItem(TOTAL_GAMES_KEY).then((val) => {
-        const total = val ? parseInt(val, 10) + 1 : 1;
-        AsyncStorage.setItem(TOTAL_GAMES_KEY, total.toString());
-      });
-
-      // Incrementar total de dígitos digitados nesta sessão
-      if (currentIndex > 0) {
-        AsyncStorage.getItem(TOTAL_DIGITS_KEY).then((val) => {
-          const total = val ? parseInt(val, 10) + currentIndex : currentIndex;
-          AsyncStorage.setItem(TOTAL_DIGITS_KEY, total.toString());
-        });
-      }
-
-      // Salvar recorde pessoal
-      if (currentIndex > highScore) {
-        const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
-        setHighScore(currentIndex);
-        AsyncStorage.setItem(key, currentIndex.toString());
+      if (currentIndex >= highScoreRef.current && currentIndex > 0) {
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch {}
       }
     }
-  }, [gameOver]);
+  }, [gameOver, currentIndex]);
 
   // Android back button confirmation during active game
   useEffect(() => {
@@ -169,7 +203,10 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         setTimeout(() => setCorrectFlash(false), 150);
         setWrongPress(false);
         setLastWrongKey(null);
-        setCurrentIndex((prev) => prev + 1);
+
+        const newIndex = currentIndex + 1;
+        setCurrentIndex(newIndex);
+        recordCorrectProgress(newIndex);
 
         setTimeout(() => {
           scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -185,7 +222,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         }
       }
     },
-    [currentIndex, gameOver, mode, started]
+    [currentIndex, gameOver, mode, recordCorrectProgress, started]
   );
 
   const handleHint = useCallback(() => {
@@ -201,12 +238,15 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     setWrongPress(false);
     setLastWrongKey(null);
     setHintsUsed((prev) => prev + 1);
-    setCurrentIndex((prev) => prev + 1);
+
+    const newIndex = currentIndex + 1;
+    setCurrentIndex(newIndex);
+    recordCorrectProgress(newIndex);
 
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 50);
-  }, [currentIndex, gameOver, mode, started]);
+  }, [currentIndex, gameOver, mode, recordCorrectProgress, started]);
 
   const handleRestart = () => {
     setCurrentIndex(0);
@@ -216,9 +256,14 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     setLastWrongKey(null);
     setStarted(mode === 'practice');
     setHintsUsed(0);
+    hasCountedGameRef.current = false;
     const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
     AsyncStorage.getItem(key).then((val) => {
-      if (val) setHighScore(parseInt(val, 10));
+      if (val) {
+        const hs = parseInt(val, 10);
+        setHighScore(hs);
+        highScoreRef.current = hs;
+      }
     });
   };
 
