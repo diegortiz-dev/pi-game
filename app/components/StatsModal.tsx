@@ -15,12 +15,17 @@ type StatsModalProps = {
   onClose: () => void;
 };
 
-type Achievement = {
+type FilterTab = 'all' | 'completed' | 'in_progress';
+
+export type Achievement = {
   id: string;
   title: string;
   description: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
   unlocked: boolean;
+  current: number;
+  target: number;
+  unit: string;
 };
 
 const HIGH_SCORE_KEY = '@pi_game_high_score';
@@ -33,6 +38,7 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
   const [practiceScore, setPracticeScore] = useState(0);
   const [totalDigits, setTotalDigits] = useState(0);
   const [totalGames, setTotalGames] = useState(0);
+  const [activeTab, setActiveTab] = useState<FilterTab>('all');
 
   useEffect(() => {
     if (visible) {
@@ -67,6 +73,9 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       description: 'Chegue a 5 dígitos de π',
       icon: 'footsteps-outline',
       unlocked: bestOverall >= 5,
+      current: bestOverall,
+      target: 5,
+      unit: 'dígitos',
     },
     {
       id: 'apprentice',
@@ -74,6 +83,9 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       description: 'Chegue a 15 dígitos de π',
       icon: 'school-outline',
       unlocked: bestOverall >= 15,
+      current: bestOverall,
+      target: 15,
+      unit: 'dígitos',
     },
     {
       id: 'geometer',
@@ -81,6 +93,9 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       description: 'Chegue a 30 dígitos de π',
       icon: 'shapes-outline',
       unlocked: bestOverall >= 30,
+      current: bestOverall,
+      target: 30,
+      unit: 'dígitos',
     },
     {
       id: 'pi_master',
@@ -88,6 +103,9 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       description: 'Chegue a 50 dígitos de π',
       icon: 'ribbon-outline',
       unlocked: bestOverall >= 50,
+      current: bestOverall,
+      target: 50,
+      unit: 'dígitos',
     },
     {
       id: 'circle_legend',
@@ -95,6 +113,9 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       description: 'Chegue a 100 dígitos de π',
       icon: 'trophy-outline',
       unlocked: bestOverall >= 100,
+      current: bestOverall,
+      target: 100,
+      unit: 'dígitos',
     },
     {
       id: 'speedster',
@@ -102,6 +123,9 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       description: 'Acerte 20 dígitos no modo Desafio',
       icon: 'flash-outline',
       unlocked: timerScore >= 20,
+      current: timerScore,
+      target: 20,
+      unit: 'dígitos',
     },
     {
       id: 'practice_scholar',
@@ -109,6 +133,9 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       description: 'Acerte 15 dígitos no modo Prática',
       icon: 'book-outline',
       unlocked: practiceScore >= 15,
+      current: practiceScore,
+      target: 15,
+      unit: 'dígitos',
     },
     {
       id: 'dedicated_player',
@@ -116,6 +143,9 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       description: 'Jogue 10 partidas no total',
       icon: 'game-controller-outline',
       unlocked: totalGames >= 10,
+      current: totalGames,
+      target: 10,
+      unit: 'partidas',
     },
     {
       id: 'digit_master',
@@ -123,8 +153,17 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
       description: 'Digite 100 dígitos no total',
       icon: 'calculator-outline',
       unlocked: totalDigits >= 100,
+      current: totalDigits,
+      target: 100,
+      unit: 'dígitos',
     },
   ];
+
+  const filteredAchievements = achievements.filter((item) => {
+    if (activeTab === 'completed') return item.unlocked;
+    if (activeTab === 'in_progress') return !item.unlocked;
+    return true;
+  });
 
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
@@ -188,52 +227,131 @@ export default function StatsModal({ visible, onClose }: StatsModalProps) {
               />
             </View>
 
-            {/* Lista de Conquistas */}
-            <View style={styles.achievementsList}>
-              {achievements.map((item) => (
-                <View
-                  key={item.id}
+            {/* Abas de Filtro */}
+            <View style={styles.filterTabsRow}>
+              <TouchableOpacity
+                style={[styles.filterTab, activeTab === 'all' && styles.filterTabActive]}
+                onPress={() => setActiveTab('all')}
+                activeOpacity={0.7}
+              >
+                <Text
                   style={[
-                    styles.achievementCard,
-                    item.unlocked ? styles.achievementUnlocked : styles.achievementLocked,
+                    styles.filterTabText,
+                    activeTab === 'all' && styles.filterTabTextActive,
                   ]}
                 >
-                  <View
-                    style={[
-                      styles.iconCircle,
-                      item.unlocked ? styles.iconCircleUnlocked : styles.iconCircleLocked,
-                    ]}
-                  >
-                    <Ionicons
-                      name={item.icon}
-                      size={24}
-                      color={item.unlocked ? '#ab8b0c' : '#4a6080'}
-                    />
-                  </View>
-                  <View style={styles.achievementInfo}>
-                    <Text
+                  Todas ({achievements.length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.filterTab, activeTab === 'completed' && styles.filterTabActive]}
+                onPress={() => setActiveTab('completed')}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.filterTabText,
+                    activeTab === 'completed' && styles.filterTabTextActive,
+                  ]}
+                >
+                  Concluídas ({unlockedCount})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.filterTab, activeTab === 'in_progress' && styles.filterTabActive]}
+                onPress={() => setActiveTab('in_progress')}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.filterTabText,
+                    activeTab === 'in_progress' && styles.filterTabTextActive,
+                  ]}
+                >
+                  Em Andamento ({achievements.length - unlockedCount})
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Lista de Conquistas */}
+            {filteredAchievements.length === 0 ? (
+              <Text style={styles.emptyListText}>Nenhuma conquista nesta categoria.</Text>
+            ) : (
+              <View style={styles.achievementsList}>
+                {filteredAchievements.map((item) => {
+                  const progressPct = Math.min(
+                    100,
+                    Math.round((item.current / item.target) * 100)
+                  );
+                  return (
+                    <View
+                      key={item.id}
                       style={[
-                        styles.achievementTitle,
-                        !item.unlocked && styles.textLocked,
+                        styles.achievementCard,
+                        item.unlocked ? styles.achievementUnlocked : styles.achievementLocked,
                       ]}
                     >
-                      {item.title}
-                    </Text>
-                    <Text style={styles.achievementDesc}>{item.description}</Text>
-                  </View>
-                  {item.unlocked ? (
-                    <Ionicons name="checkmark-circle" size={22} color="#7ec87e" />
-                  ) : (
-                    <Ionicons name="lock-closed" size={20} color="#4a6080" />
-                  )}
-                </View>
-              ))}
-            </View>
+                      <View
+                        style={[
+                          styles.iconCircle,
+                          item.unlocked ? styles.iconCircleUnlocked : styles.iconCircleLocked,
+                        ]}
+                      >
+                        <Ionicons
+                          name={item.icon}
+                          size={24}
+                          color={item.unlocked ? '#ab8b0c' : '#4a6080'}
+                        />
+                      </View>
+                      <View style={styles.achievementInfo}>
+                        <View style={styles.achievementTitleRow}>
+                          <Text
+                            style={[
+                              styles.achievementTitle,
+                              !item.unlocked && styles.textLocked,
+                            ]}
+                          >
+                            {item.title}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.metricText,
+                              !item.unlocked && styles.metricTextLocked,
+                            ]}
+                          >
+                            {Math.min(item.current, item.target)}/{item.target} {item.unit}
+                          </Text>
+                        </View>
+                        <Text style={styles.achievementDesc}>{item.description}</Text>
+
+                        {/* Barra de Progresso Individual */}
+                        <View style={styles.itemProgressBarBg}>
+                          <View
+                            style={[
+                              item.unlocked
+                                ? styles.itemProgressBarFill
+                                : styles.itemProgressBarFillLocked,
+                              { width: `${progressPct}%` },
+                            ]}
+                          />
+                        </View>
+                      </View>
+
+                      {item.unlocked ? (
+                        <Ionicons name="checkmark-circle" size={22} color="#7ec87e" />
+                      ) : (
+                        <Ionicons name="lock-closed" size={20} color="#4a6080" />
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </ScrollView>
         </View>
       </View>
     </Modal>
   );
 }
-
-// styles moved to StatsModal.styles.ts

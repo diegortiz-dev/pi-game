@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
 import StatsModal from '../components/StatsModal';
+import SettingsModal from '../components/SettingsModal';
 import { styles } from './home.styles';
 
 type HomeScreenProps = {
@@ -20,6 +21,7 @@ type HomeScreenProps = {
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [statsVisible, setStatsVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -27,6 +29,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
       {/* Botão fixo no topo direito */}
       <View style={styles.headerRow}>
+        <TouchableOpacity
+          style={styles.settingsIconBtn}
+          onPress={() => setSettingsVisible(true)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="settings-outline" size={20} color="#8badc9" />
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.statsIconBtn}
           onPress={() => setStatsVisible(true)}
@@ -126,6 +135,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       <StatsModal
         visible={statsVisible}
         onClose={() => setStatsVisible(false)}
+      />
+      <SettingsModal
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
       />
     </SafeAreaView>
   );

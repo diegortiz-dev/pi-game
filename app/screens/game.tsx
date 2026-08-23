@@ -8,6 +8,7 @@ import {
   useWindowDimensions,
   BackHandler,
   Share,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -18,12 +19,24 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../types';
 import { styles, COLORS } from './game.styles';
+import {
+  playKeyPressSound,
+  playCorrectSound,
+  playErrorSound,
+  playAchievementSound,
+} from '../utils/sound';
+import { HAPTICS_KEY, SHAKE_KEY } from '../components/SettingsModal';
 
 type GameScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Game'>;
   route: RouteProp<RootStackParamList, 'Game'>;
 };
 
+type ToastState = {
+  title: string;
+  description: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+} | null;
 
 const PI_DIGITS =
   '14159265358979323846264338327950288419716939937510' +
@@ -66,6 +79,9 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
   const [lastWrongKey, setLastWrongKey] = useState<number | null>(null);
   const [correctFlash, setCorrectFlash] = useState(false);
   const [highScore, setHighScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [currentToast, setCurrentToast] = useState<ToastState>(null);
+
   const scrollViewRef = useRef<ScrollView>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [started, setStarted] = useState(mode === 'practice');
@@ -75,27 +91,103 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
   const totalGamesRef = useRef(0);
   const hasCountedGameRef = useRef(false);
 
-  // Load high score and cumulative stats on mount
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const toastAnim = useRef(new Animated.Value(-120)).current;
+  const hapticsEnabledRef = useRef(true);
+  const shakeEnabledRef = useRef(true);
+  const unlockedAchievementsRef = useRef<Set<string>>(new Set());
+
+  // Carregar preferências e estatísticas no início
   useEffect(() => {
     const key = mode === 'timer' ? HIGH_SCORE_KEY : HIGH_SCORE_PRACTICE_KEY;
     Promise.all([
       AsyncStorage.getItem(key),
       AsyncStorage.getItem(TOTAL_DIGITS_KEY),
       AsyncStorage.getItem(TOTAL_GAMES_KEY),
-    ]).then(([hsVal, digitsVal, gamesVal]) => {
-      if (hsVal) {
-        const hs = parseInt(hsVal, 10);
-        setHighScore(hs);
-        highScoreRef.current = hs;
+      AsyncStorage.getItem(HIGH_SCORE_KEY),
+      AsyncStorage.getItem(HIGH_SCORE_PRACTICE_KEY),
+      AsyncStorage.getItem(HAPTICS_KEY),
+      AsyncStorage.getItem(SHAKE_KEY),
+    ]).then(
+      ([hsVal, digitsVal, gamesVal, tHs, pHs, hapticsVal, shakeVal]) => {
+        if (hsVal) {
+          const hs = parseInt(hsVal, 10);
+          setHighScore(hs);
+          highScoreRef.current = hs;
+        }
+        if (digitsVal) {
+          totalDigitsRef.current = parseInt(digitsVal, 10);
+        }
+        if (gamesVal) {
+          totalGamesRef.current = parseInt(gamesVal, 10);
+        }
+        if (hapticsVal !== null) {
+          hapticsEnabledRef.current = hapticsVal === 'true';
+        }
+        if (shakeVal !== null) {
+          shakeEnabledRef.current = shakeVal === 'true';
+        }
+
+        // Mapear conquistas já desbloqueadas para evitar notificar conquistas antigas
+        const tScore = tHs ? parseInt(tHs, 10) : 0;
+        const pScore = pHs ? parseInt(pHs, 10) : 0;
+        const best = Math.max(tScore, pScore);
+        const digits = totalDigitsRef.current;
+        const games = totalGamesRef.current;
+
+        const set = unlockedAchievementsRef.current;
+        if (best >= 5) set.add('first_step');
+        if (best >= 15) set.add('apprentice');
+        if (best >= 30) set.add('geometer');
+        if (best >= 50) set.add('pi_master');
+        if (best >= 100) set.add('circle_legend');
+        if (tScore >= 20) set.add('speedster');
+        if (pScore >= 15) set.add('practice_scholar');
+        if (games >= 10) set.add('dedicated_player');
+        if (digits >= 100) set.add('digit_master');
       }
-      if (digitsVal) {
-        totalDigitsRef.current = parseInt(digitsVal, 10);
-      }
-      if (gamesVal) {
-        totalGamesRef.current = parseInt(gamesVal, 10);
-      }
-    });
+    );
   }, [mode]);
+
+  const checkAndNotifyAchievements = useCallback(
+    (newIndex: number) => {
+      const best = Math.max(highScoreRef.current, newIndex);
+      const digits = totalDigitsRef.current;
+      const games = totalGamesRef.current;
+      const timerScoreVal = mode === 'timer' ? Math.max(highScoreRef.current, newIndex) : 0;
+      const practiceScoreVal = mode === 'practice' ? Math.max(highScoreRef.current, newIndex) : 0;
+
+      const achDefs = [
+        { id: 'first_step', title: 'Primeiro Passo', description: 'Chegue a 5 dígitos de π', icon: 'footsteps-outline', cond: best >= 5 },
+        { id: 'apprentice', title: 'Aprendiz de Arquimedes', description: 'Chegue a 15 dígitos de π', icon: 'school-outline', cond: best >= 15 },
+        { id: 'geometer', title: 'Geômetra', description: 'Chegue a 30 dígitos de π', icon: 'shapes-outline', cond: best >= 30 },
+        { id: 'pi_master', title: 'Mestre do π', description: 'Chegue a 50 dígitos de π', icon: 'ribbon-outline', cond: best >= 50 },
+        { id: 'circle_legend', title: 'Lenda do Círculo', description: 'Chegue a 100 dígitos de π', icon: 'trophy-outline', cond: best >= 100 },
+        { id: 'speedster', title: 'Velocista', description: 'Acerte 20 dígitos no modo Desafio', icon: 'flash-outline', cond: timerScoreVal >= 20 },
+        { id: 'practice_scholar', title: 'Estudioso', description: 'Acerte 15 dígitos no modo Prática', icon: 'book-outline', cond: practiceScoreVal >= 15 },
+        { id: 'dedicated_player', title: 'Dedicado', description: 'Jogue 10 partidas no total', icon: 'game-controller-outline', cond: games >= 10 },
+        { id: 'digit_master', title: 'Contador de π', description: 'Digite 100 dígitos no total', icon: 'calculator-outline', cond: digits >= 100 },
+      ];
+
+      achDefs.forEach((ach) => {
+        if (ach.cond && !unlockedAchievementsRef.current.has(ach.id)) {
+          unlockedAchievementsRef.current.add(ach.id);
+          playAchievementSound();
+          setCurrentToast({ title: ach.title, description: ach.description, icon: ach.icon as any });
+
+          toastAnim.setValue(-120);
+          Animated.sequence([
+            Animated.timing(toastAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+            Animated.delay(3200),
+            Animated.timing(toastAnim, { toValue: -120, duration: 400, useNativeDriver: true }),
+          ]).start(() => {
+            setCurrentToast(null);
+          });
+        }
+      });
+    },
+    [mode, toastAnim]
+  );
 
   const markGamePlayed = useCallback(() => {
     if (!hasCountedGameRef.current) {
@@ -104,8 +196,9 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
       AsyncStorage.setItem(TOTAL_GAMES_KEY, totalGamesRef.current.toString()).catch((err) =>
         console.error('Erro ao salvar total_games:', err)
       );
+      checkAndNotifyAchievements(currentIndex);
     }
-  }, []);
+  }, [checkAndNotifyAchievements, currentIndex]);
 
   const recordCorrectProgress = useCallback(
     (newIndex: number) => {
@@ -126,22 +219,27 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
           console.error('Erro ao salvar high_score:', err)
         );
       }
+
+      // Verificar novas conquistas desbloqueadas em tempo real
+      checkAndNotifyAchievements(newIndex);
     },
-    [markGamePlayed, mode]
+    [checkAndNotifyAchievements, markGamePlayed, mode]
   );
 
-  // Haptic feedback when game over happens with a new record
+  // Haptic feedback quando o jogo termina com novo recorde
   useEffect(() => {
     if (gameOver) {
       if (currentIndex >= highScoreRef.current && currentIndex > 0) {
-        try {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch {}
+        if (hapticsEnabledRef.current) {
+          try {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } catch {}
+        }
       }
     }
   }, [gameOver, currentIndex]);
 
-  // Android back button confirmation during active game
+  // Android back button
   useEffect(() => {
     const handler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (!gameOver && currentIndex > 0) {
@@ -153,6 +251,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     return () => handler.remove();
   }, [gameOver, currentIndex, navigation]);
 
+  // Contador do timer
   useEffect(() => {
     if (mode === 'timer' && started && !gameOver) {
       timerRef.current = setInterval(() => {
@@ -172,6 +271,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
   }, [mode, started, gameOver]);
 
   const triggerLightHaptic = () => {
+    if (!hapticsEnabledRef.current) return;
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {
@@ -180,6 +280,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
   };
 
   const triggerErrorHaptic = () => {
+    if (!hapticsEnabledRef.current) return;
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } catch {
@@ -187,9 +288,24 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     }
   };
 
+  const triggerShake = () => {
+    if (!shakeEnabledRef.current) return;
+    shakeAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 12, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -12, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 8, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 4, duration: 40, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
+    ]).start();
+  };
+
   const handleDigitPress = useCallback(
     (digit: number) => {
       if (gameOver) return;
+
+      playKeyPressSound();
 
       if (mode === 'timer' && !started) {
         setStarted(true);
@@ -199,10 +315,12 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
 
       if (digit === expectedDigit) {
         triggerLightHaptic();
+        playCorrectSound();
         setCorrectFlash(true);
         setTimeout(() => setCorrectFlash(false), 150);
         setWrongPress(false);
         setLastWrongKey(null);
+        setStreak((prev) => prev + 1);
 
         const newIndex = currentIndex + 1;
         setCurrentIndex(newIndex);
@@ -213,6 +331,9 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         }, 50);
       } else {
         triggerErrorHaptic();
+        playErrorSound();
+        triggerShake();
+        setStreak(0);
         setWrongPress(true);
         setLastWrongKey(digit);
 
@@ -228,15 +349,19 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
   const handleHint = useCallback(() => {
     if (gameOver) return;
 
+    playKeyPressSound();
+
     if (mode === 'timer' && !started) {
       setStarted(true);
     }
 
     triggerLightHaptic();
+    playCorrectSound();
     setCorrectFlash(true);
     setTimeout(() => setCorrectFlash(false), 150);
     setWrongPress(false);
     setLastWrongKey(null);
+    setStreak((prev) => prev + 1);
     setHintsUsed((prev) => prev + 1);
 
     const newIndex = currentIndex + 1;
@@ -254,6 +379,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     setGameOver(false);
     setWrongPress(false);
     setLastWrongKey(null);
+    setStreak(0);
     setStarted(mode === 'practice');
     setHintsUsed(0);
     hasCountedGameRef.current = false;
@@ -279,7 +405,6 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
 
   const revealedDigits = PI_DIGITS.substring(0, currentIndex);
 
-  // Formata dígitos organizados em linhas e pequenos grupos
   const DIGITS_FIRST_LINE = 14;
   const DIGITS_PER_LINE = 16;
   const formatDigits = () => {
@@ -321,6 +446,30 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
+      {/* Banner Toast Flutuante de Conquista */}
+      {currentToast && (
+        <Animated.View
+          style={[
+            styles.toastContainer,
+            { transform: [{ translateY: toastAnim }] },
+          ]}
+        >
+          <View style={styles.toastContent}>
+            <View style={styles.toastIconWrap}>
+              <Ionicons name={currentToast.icon} size={22} color="#ab8b0c" />
+            </View>
+            <View style={styles.toastTextWrap}>
+              <View style={styles.toastTitleRow}>
+                <Ionicons name="sparkles" size={12} color="#ab8b0c" />
+                <Text style={styles.toastCategory}>Conquista Desbloqueada!</Text>
+              </View>
+              <Text style={styles.toastTitle}>{currentToast.title}</Text>
+              <Text style={styles.toastDesc}>{currentToast.description}</Text>
+            </View>
+          </View>
+        </Animated.View>
+      )}
+
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -347,6 +496,14 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
       <View style={styles.scoreContainer}>
         <Text style={styles.scoreLabel}>Dígitos de π</Text>
         <Text style={styles.scoreValue}>{currentIndex}</Text>
+
+        {/* Sistema de Sequência (Streak 🔥) */}
+        {streak > 1 && (
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakText}>🔥 {streak}x Sequência!</Text>
+          </View>
+        )}
+
         {highScore > 0 && (
           <View style={styles.infoRow}>
             <Ionicons name="trophy-outline" size={16} color={COLORS.goldMuted} />
@@ -361,11 +518,13 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
         )}
       </View>
 
-      <View
+      {/* Container do Display de π com Animação de Tremor (Shake) */}
+      <Animated.View
         style={[
           styles.piDisplayContainer,
           wrongPress && mode === 'practice' && styles.piDisplayWrong,
           correctFlash && styles.piDisplayCorrect,
+          { transform: [{ translateX: shakeAnim }] },
         ]}
       >
         <ScrollView
@@ -379,7 +538,7 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
             <Text style={styles.piCursor}>│</Text>
           </Text>
         </ScrollView>
-      </View>
+      </Animated.View>
 
       {wrongPress && mode === 'practice' && (
         <View style={styles.wrongRow}>
@@ -522,5 +681,3 @@ export default function GameScreen({ navigation, route }: GameScreenProps) {
     </SafeAreaView>
   );
 }
-
-
