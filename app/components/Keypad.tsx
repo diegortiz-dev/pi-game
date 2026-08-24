@@ -32,7 +32,6 @@ type Props = {
    * decide o que fica à vista, então uma dica não teria sentido.
    */
   showHint?: boolean;
-  disabled?: boolean;
   keySize: number;
 };
 
@@ -42,7 +41,6 @@ function Key({
   accessibilityLabel,
   size,
   tone = 'default',
-  disabled,
   icon,
   caption,
 }: {
@@ -51,24 +49,20 @@ function Key({
   accessibilityLabel: string;
   size: number;
   tone?: 'default' | 'wrong' | 'hint';
-  disabled?: boolean;
   icon?: React.ComponentProps<typeof Ionicons>['name'];
   caption?: string;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => [
         styles.key,
         { width: size, height: size },
         tone === 'hint' && styles.keyHint,
         tone === 'wrong' && styles.keyWrong,
         pressed && styles.keyPressed,
-        disabled && styles.keyDisabled,
       ]}
     >
       {icon ? (
@@ -89,7 +83,6 @@ export default function Keypad({
   wrongKey,
   hintCostSeconds,
   showHint = true,
-  disabled,
   keySize,
 }: Props) {
   const t = useT();
@@ -105,7 +98,6 @@ export default function Keypad({
               size={keySize}
               tone={wrongKey === digit ? 'wrong' : 'default'}
               onPress={() => onDigit(digit)}
-              disabled={disabled}
               accessibilityLabel={t('keypad.a11y.digit', { n: digit })}
             />
           ))}
@@ -120,7 +112,6 @@ export default function Keypad({
             size={keySize}
             tone="hint"
             onPress={onHint}
-            disabled={disabled}
             accessibilityLabel={
               hintCostSeconds
                 ? t('keypad.a11y.hintCost', { n: hintCostSeconds })
@@ -135,7 +126,6 @@ export default function Keypad({
           size={keySize}
           tone={wrongKey === 0 ? 'wrong' : 'default'}
           onPress={() => onDigit(0)}
-          disabled={disabled}
           accessibilityLabel={t('keypad.a11y.digit', { n: 0 })}
         />
         {/* Mantém o zero centrado sob o 8. */}
@@ -174,9 +164,6 @@ const styles = StyleSheet.create({
   keyWrong: {
     backgroundColor: palette.overlay.dangerWash,
     borderColor: palette.accent.danger,
-  },
-  keyDisabled: {
-    opacity: 0.4,
   },
   keyLabel: {
     ...type.key,

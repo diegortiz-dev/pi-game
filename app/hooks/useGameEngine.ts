@@ -110,7 +110,6 @@ function chargeTime(deadlineRef: { current: number | null }, ms: number): number
 export function useGameEngine(mode: GameMode) {
   const [state, setState] = useState<GameState>(() => initialState(mode));
   const [progress, setProgress] = useState<Progress>(EMPTY_PROGRESS);
-  const [progressReady, setProgressReady] = useState(false);
   const [achievementQueue, setAchievementQueue] = useState<Achievement[]>([]);
 
   const stateRef = useRef<GameState>(state);
@@ -149,7 +148,6 @@ export function useGameEngine(mode: GameMode) {
 
       progressRef.current = seeded;
       setProgress(seeded);
-      setProgressReady(true);
     });
     return () => {
       active = false;
@@ -386,7 +384,6 @@ export function useGameEngine(mode: GameMode) {
   return {
     state,
     progress,
-    progressReady,
     revealed: PI_DIGITS.slice(0, state.position),
     personalBest: mode === 'timer' ? progress.bestChallenge : progress.bestPractice,
     /** A conquista sendo anunciada, ou undefined. Uma de cada vez. */

@@ -22,10 +22,9 @@ type Props = {
   /** Sacode a fita horizontalmente. Usado ao errar. */
   shakeX?: Animated.Value;
   faulted?: boolean;
-  highlight?: boolean;
 };
 
-export default function PiTape({ revealed, shakeX, faulted, highlight }: Props) {
+export default function PiTape({ revealed, shakeX, faulted }: Props) {
   const t = useT();
   const scrollRef = useRef<ScrollView>(null);
   const groups = groupDigits(revealed);
@@ -43,7 +42,6 @@ export default function PiTape({ revealed, shakeX, faulted, highlight }: Props) 
       style={[
         styles.frame,
         faulted && styles.frameFaulted,
-        highlight && styles.frameHighlight,
         shakeX ? { transform: [{ translateX: shakeX }] } : null,
       ]}
       accessibilityRole="text"
@@ -92,9 +90,6 @@ const styles = StyleSheet.create({
   frameFaulted: {
     borderColor: palette.accent.danger,
     backgroundColor: palette.overlay.dangerWash,
-  },
-  frameHighlight: {
-    borderColor: palette.gold.base,
   },
   scroll: {
     flex: 1,
