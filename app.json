@@ -16,7 +16,9 @@
       "package": "com.diegoortiz.pigame",
       "versionCode": 1,
       "permissions": [
-        "VIBRATE"
+        "VIBRATE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -28,11 +30,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "211d8e91-4667-4f15-ab13-c59a704446f9"
-      }
     },
     "plugins": [
       "expo-audio",
@@ -48,6 +45,12 @@
       ],
       "expo-localization"
     ],
-    "backgroundColor": "#0A1628"
+    "backgroundColor": "#0A1628",
+    "extra": {
+      "eas": {
+        "projectId": "da15e062-e0a7-4828-a04b-417d667056d9"
+      }
+    },
+    "owner": "ortizdtz"
   }
 }
