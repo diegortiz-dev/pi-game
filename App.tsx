@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect } from 'react';
 import { NavigationContainer, type Theme as NavTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SystemUI from 'expo-system-ui';
 import { useFonts } from 'expo-font';
 import {
   SpaceGrotesk_400Regular,
@@ -30,6 +32,17 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // A splash fica na tela até as fontes chegarem, senão o app aparece por um
 // instante com a fonte do sistema e depois salta para a definitiva.
 void SplashScreen.preventAutoHideAsync();
+
+/*
+ * Fundo da view raiz.
+ *
+ * Numa transição, a tela que sai desliza e expõe por um instante o que está
+ * atrás dela. Sem esta cor, o que aparece é o branco padrão da view raiz — e o
+ * clarão some a ilusão de que as telas são um app só. Definir a cor em
+ * app.json cobre a janela nativa, mas só depois de um build; esta chamada vale
+ * já na próxima execução, inclusive no Expo Go.
+ */
+void SystemUI.setBackgroundColorAsync(palette.ink[800]);
 
 /** Faz o fundo da navegação combinar com as telas, evitando um flash claro. */
 const navigationTheme: NavTheme = {
@@ -80,7 +93,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <SafeAreaProvider onLayout={onLayout}>
+      <SafeAreaProvider style={styles.root} onLayout={onLayout}>
         <SettingsProvider>
           <NavigationContainer theme={navigationTheme}>
             <Stack.Navigator
@@ -101,3 +114,11 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  /** Terceira camada de fundo: a view do React, abaixo das telas. */
+  root: {
+    flex: 1,
+    backgroundColor: palette.ink[800],
+  },
+});

@@ -56,6 +56,15 @@ export default function HomeScreen({ navigation }: Props) {
 
       <View style={styles.header}>
         <Pressable
+          onPress={() => setSettingsOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t('home.a11y.settings')}
+          style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}
+        >
+          <Ionicons name="settings-outline" size={22} color={palette.text.secondary} />
+        </Pressable>
+
+        <Pressable
           onPress={() => setStatsOpen(true)}
           accessibilityRole="button"
           accessibilityLabel={t('home.a11y.achievements', {
@@ -64,18 +73,10 @@ export default function HomeScreen({ navigation }: Props) {
           })}
           style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}
         >
-          <Ionicons name="trophy-outline" size={16} color={palette.gold.base} />
+          <Ionicons name="trophy-outline" size={20} color={palette.gold.base} />
           <Text style={styles.headerButtonText}>
             {unlockedCount}/{achievements.length}
           </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setSettingsOpen(true)}
-          accessibilityRole="button"
-          accessibilityLabel={t('home.a11y.settings')}
-          style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}
-        >
-          <Ionicons name="settings-outline" size={18} color={palette.text.secondary} />
         </Pressable>
       </View>
 

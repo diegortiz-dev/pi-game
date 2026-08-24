@@ -9,36 +9,41 @@ export const styles = StyleSheet.create({
   },
 
   /* Cabeçalho ----------------------------------------------------------- */
+  /*
+   * Um botão em cada ponta, em vez dos dois amontoados à direita: assim
+   * nenhum dos dois lê como um enfeite espremido no canto.
+   */
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
   },
   headerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    height: 36,
-    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    height: 46,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: palette.ink[500],
+    backgroundColor: palette.ink[700],
   },
   headerButtonText: {
     ...type.data,
-    fontSize: 13,
+    fontSize: 15,
     color: palette.text.secondary,
   },
   headerIcon: {
-    width: 36,
-    height: 36,
+    width: 46,
+    height: 46,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: palette.ink[500],
+    backgroundColor: palette.ink[700],
   },
   pressed: {
     opacity: 0.65,
