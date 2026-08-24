@@ -119,6 +119,25 @@ reorganiza a cada dígito novo.
 Contrastes de texto foram conferidos pela fórmula WCAG 2.1 contra o fundo e
 estão anotados em `app/theme/index.ts`.
 
+## Assets de marca
+
+Todos saem de `assets/iconeprincipal.png`, o original exportado do Canva, por um
+script:
+
+```bash
+node scripts/generate-icons.js
+```
+
+Ele recorta o disco no limite exato do conteúdo e reemite cada saída no formato
+que a plataforma pede: `icon.png` quadrado e sem transparência, porque o iOS
+pinta de preto o que estiver vazio; `adaptive-icon.png` com o disco dentro dos
+66% centrais, que é o que o Android garante depois de aplicar a máscara;
+`splash-icon.png`, `favicon.png` e o `brand-pi.png` usado na tela inicial.
+
+As saídas usam paleta indexada. O logo tem três cores de verdade — navy, dourado
+e branco — e o resto é antialiasing, então 64 cores são indistinguíveis do RGBA
+e ocupam uma fração do espaço: os cinco arquivos somam 42 KB em vez de 251 KB.
+
 ## Efeitos sonoros
 
 Os quatro WAV em `assets/sfx/` são sintetizados, não gravados. São tocados pelo
