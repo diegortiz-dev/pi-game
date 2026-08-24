@@ -1,218 +1,140 @@
 import { StyleSheet } from 'react-native';
+import { palette, spacing, radius, type } from '../theme';
 
 export const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: '#0a1628',
+    backgroundColor: palette.ink[800],
+    paddingHorizontal: spacing.lg,
   },
-  scrollContent: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 22,
-    paddingVertical: 16,
-  },
-  headerRow: {
-    width: '100%',
+
+  /* Cabeçalho ----------------------------------------------------------- */
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 22,
-    paddingTop: 12,
-    paddingBottom: 4,
-    marginBottom: 0,
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
   },
-  settingsIconBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#11243d',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#1e3a5f',
-  },
-  statsIconBtn: {
+  headerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#11243d',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    gap: spacing.xs,
+    height: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#ab8b0c',
+    borderColor: palette.ink[500],
   },
-  statsBtnText: {
-    color: '#ab8b0c',
-    fontSize: 14,
-    fontWeight: '600',
+  headerButtonText: {
+    ...type.data,
+    fontSize: 13,
+    color: palette.text.secondary,
   },
-  laurelContainer: {
+  headerIcon: {
+    width: 36,
+    height: 36,
     alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 12,
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.ink[500],
   },
-  appIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 24,
-    resizeMode: 'cover',
-    borderWidth: 2,
-    borderColor: '#1e3a5f',
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#ab8b0c',
-    marginBottom: 6,
-    letterSpacing: 3,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: '#8badc9',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  greekQuote: {
-    fontSize: 11,
-    color: '#ab8b0c',
-    marginBottom: 28,
-    textAlign: 'center',
-    fontStyle: 'italic',
+  pressed: {
     opacity: 0.65,
-    paddingHorizontal: 8,
   },
 
-  // ── Cards horizontais ──────────────────────────────────────
-  buttonsContainer: {
-    width: '100%',
-    gap: 14,
-  },
-  modeCard: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 18,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderWidth: 1.5,
-  },
-  timerCard: {
-    backgroundColor: '#0e1f36',
-    borderColor: '#ab8b0c',
-    elevation: 6,
-    shadowColor: '#ab8b0c',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  practiceCard: {
-    backgroundColor: '#0a1c30',
-    borderColor: '#5b9bd5',
-    elevation: 6,
-    shadowColor: '#5b9bd5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-
-  // ── Ícones laterais ─────────────────────────────────────────
-  cardIconWrap: {
-    width: 70,
-    height: 70,
-    borderRadius: 16,
-    alignItems: 'center',
+  /* Corpo ---------------------------------------------------------------- */
+  content: {
+    flexGrow: 1,
     justifyContent: 'center',
-    marginRight: 14,
-    borderWidth: 1,
-  },
-  timerIconWrap: {
-    backgroundColor: 'rgba(171, 139, 12, 0.1)',
-    borderColor: 'rgba(171, 139, 12, 0.4)',
-  },
-  practiceIconWrap: {
-    backgroundColor: 'rgba(91, 155, 213, 0.1)',
-    borderColor: 'rgba(91, 155, 213, 0.4)',
+    paddingVertical: spacing.xl,
+    gap: spacing.xxl,
   },
 
-  // ── Texto central ────────────────────────────────────────────
-  cardTextBlock: {
+  /* Herói ---------------------------------------------------------------- */
+  /*
+   * `alignSelf: stretch` nos dois é o que impede o conteúdo de estourar a
+   * largura da tela: com apenas `alignItems: center`, um filho de texto assume a
+   * largura do próprio conteúdo em vez da largura do pai, não quebra linha e
+   * arrasta o container inteiro junto.
+   */
+  hero: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    gap: spacing.xl,
+  },
+  readout: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+  },
+  /** O recorde é o segundo herói: grande o bastante para ser lido de longe. */
+  record: {
+    ...type.score,
+    fontSize: 56,
+    lineHeight: 58,
+    color: palette.text.primary,
+  },
+  recordLabel: {
+    ...type.label,
+    color: palette.text.tertiary,
+    marginTop: spacing.xs,
+  },
+  goal: {
+    ...type.bodySmall,
+    color: palette.gold.bright,
+    marginTop: spacing.md,
+  },
+  /** Só aparece antes da primeira partida, quando não há número a mostrar. */
+  tagline: {
+    ...type.heading,
+    color: palette.text.secondary,
+    textAlign: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+
+  /* Modos ---------------------------------------------------------------- */
+  /**
+   * Um único bloco com um fio no meio, em vez de dois cartões separados.
+   * Menos bordas competindo entre si.
+   */
+  modes: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: palette.ink[500],
+    backgroundColor: palette.ink[700],
+    overflow: 'hidden',
+  },
+  mode: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
+  modeDivided: {
+    borderTopWidth: 1,
+    borderColor: palette.ink[500],
+  },
+  modePressed: {
+    backgroundColor: palette.ink[600],
+  },
+  modeTitle: {
+    ...type.heading,
+    fontSize: 22,
+    lineHeight: 28,
     flex: 1,
+    color: palette.text.primary,
   },
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  timerTitle: {
-    color: '#ffffff',
-  },
-  practiceTitle: {
-    color: '#ffffff',
-  },
-  cardDesc: {
-    fontSize: 12,
-    color: '#8badc9',
-    lineHeight: 17,
+  modeMeta: {
+    ...type.data,
+    fontSize: 14,
+    color: palette.text.tertiary,
   },
 
-  // ── Badges de modo ───────────────────────────────────────────
-  timerBadgeLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(171, 139, 12, 0.15)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(171, 139, 12, 0.4)',
-  },
-  timerBadgeLabelText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#ab8b0c',
-  },
-  practiceBadgeLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(91, 155, 213, 0.15)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(91, 155, 213, 0.4)',
-  },
-  practiceBadgeLabelText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#5b9bd5',
-  },
-
-  // ── Chevron ──────────────────────────────────────────────────
-  cardChevron: {
-    marginLeft: 8,
-    opacity: 0.8,
-  },
-
-  // ── Rodapé ───────────────────────────────────────────────────
-  footerContainer: {
-    alignItems: 'center',
-    marginTop: 28,
-    paddingVertical: 4,
-  },
-  footer: {
-    fontSize: 12,
-    color: '#4a6080',
-    letterSpacing: 1,
+  credit: {
+    ...type.bodySmall,
+    color: palette.text.tertiary,
+    textAlign: 'center',
   },
 });

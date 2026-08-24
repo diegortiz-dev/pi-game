@@ -7,13 +7,10 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0a1628"
-    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.diegoortiz.pigame",
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.diegoortiz.pigame",
@@ -35,6 +32,20 @@
       "eas": {
         "projectId": "211d8e91-4667-4f15-ab13-c59a704446f9"
       }
-    }
+    },
+    "plugins": [
+      "expo-audio",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#0A1628"
+        }
+      ],
+      "expo-localization"
+    ]
   }
 }

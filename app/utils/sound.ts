@@ -1,133 +1,108 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 
-export const SFX_KEY = '@pi_game_sfx_enabled';
+/**
+ * Efeitos sonoros do jogo.
+ *
+ * A versão anterior usava a Web Audio API (`window.AudioContext`), que só existe
+ * no navegador. No iOS e no Android o contexto vinha nulo e todas as funções
+ * saíam em silêncio — ou seja, o app nunca teve som no celular, e a chave
+ * "Efeitos Sonoros" não fazia nada lá. Agora são arquivos WAV tocados pelo
+ * expo-audio, que funciona nas três plataformas.
+ *
+ * Também não se lê mais o AsyncStorage a cada toque: a preferência fica em
+ * memória e é atualizada por quem cuida das configurações.
+ */
 
-let audioCtx: AudioContext | null = null;
+const SOURCES = {
+  key: require('../../assets/sfx/key.wav'),
+  correct: require('../../assets/sfx/correct.wav'),
+  error: require('../../assets/sfx/error.wav'),
+  achievement: require('../../assets/sfx/achievement.wav'),
+} as const;
 
-function getAudioContext(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  if (!audioCtx) {
-    const AudioContextClass =
-      window.AudioContext || (window as any).webkitAudioContext;
-    if (AudioContextClass) {
-      audioCtx = new AudioContextClass();
+export type SfxName = keyof typeof SOURCES;
+
+/**
+ * Quantas cópias de cada som existem.
+ *
+ * Reiniciar um player em uso exige um `seekTo` assíncrono, o que atrasa a
+ * resposta justamente quando se digita rápido. Alternar entre algumas cópias
+ * deixa o toque instantâneo e permite que dois efeitos soem sobrepostos.
+ */
+const POOL_SIZE: Record<SfxName, number> = {
+  key: 3,
+  correct: 3,
+  error: 2,
+  achievement: 1,
+};
+
+type Pool = { players: AudioPlayer[]; next: number };
+
+let pools: Record<SfxName, Pool> | null = null;
+let enabled = true;
+let initFailed = false;
+
+/**
+ * Prepara os players. Chamar mais de uma vez não tem efeito.
+ * Falhar aqui não é motivo para derrubar o app — o jogo apenas fica mudo.
+ */
+export async function initSound(): Promise<void> {
+  if (pools || initFailed) return;
+  try {
+    await setAudioModeAsync({
+      playsInSilentMode: false,   // respeita a chave de silencioso do iOS
+      interruptionMode: 'mixWithOthers', // não corta a música de quem está ouvindo
+      shouldPlayInBackground: false,
+      allowsRecording: false,
+      shouldRouteThroughEarpiece: false,
+    });
+
+    const built = {} as Record<SfxName, Pool>;
+    for (const name of Object.keys(SOURCES) as SfxName[]) {
+      built[name] = {
+        players: Array.from({ length: POOL_SIZE[name] }, () =>
+          createAudioPlayer(SOURCES[name])
+        ),
+        next: 0,
+      };
+    }
+    pools = built;
+  } catch {
+    initFailed = true;
+  }
+}
+
+/** Liga ou desliga os efeitos. Chamado por quem gerencia as configurações. */
+export function setSfxEnabled(value: boolean): void {
+  enabled = value;
+}
+
+export function playSfx(name: SfxName): void {
+  if (!enabled || !pools) return;
+  const pool = pools[name];
+  const player = pool.players[pool.next];
+  pool.next = (pool.next + 1) % pool.players.length;
+  try {
+    // Uma cópia que já terminou continua com o cursor no fim; voltar ao início
+    // é barato porque nunca é a mesma que acabou de tocar.
+    if (player.currentTime > 0) player.seekTo(0).catch(() => {});
+    player.play();
+  } catch {
+    // Um efeito perdido não justifica interromper a partida.
+  }
+}
+
+/** Devolve os players ao sistema. Para quando o app for encerrado. */
+export function releaseSound(): void {
+  if (!pools) return;
+  for (const pool of Object.values(pools)) {
+    for (const player of pool.players) {
+      try {
+        player.remove();
+      } catch {
+        // já liberado
+      }
     }
   }
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(() => {});
-  }
-  return audioCtx;
-}
-
-export async function isSfxEnabled(): Promise<boolean> {
-  try {
-    const val = await AsyncStorage.getItem(SFX_KEY);
-    return val !== null ? val === 'true' : true;
-  } catch {
-    return true;
-  }
-}
-
-export async function playKeyPressSound() {
-  const enabled = await isSfxEnabled();
-  if (!enabled) return;
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  try {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.06);
-  } catch (err) {
-    console.log('Audio error:', err);
-  }
-}
-
-export async function playCorrectSound() {
-  const enabled = await isSfxEnabled();
-  if (!enabled) return;
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  try {
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(659.25, now); // E5
-    osc.frequency.setValueAtTime(880, now + 0.07); // A5
-    gain.gain.setValueAtTime(0.18, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.18);
-  } catch (err) {
-    console.log('Audio error:', err);
-  }
-}
-
-export async function playErrorSound() {
-  const enabled = await isSfxEnabled();
-  if (!enabled) return;
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  try {
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(220, now); // A3
-    osc.frequency.linearRampToValueAtTime(146.83, now + 0.22); // D3
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 0.22);
-  } catch (err) {
-    console.log('Audio error:', err);
-  }
-}
-
-export async function playAchievementSound() {
-  const enabled = await isSfxEnabled();
-  if (!enabled) return;
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  try {
-    const now = ctx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
-    notes.forEach((freq, idx) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-      gain.gain.setValueAtTime(0.22, now + idx * 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.16);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(now + idx * 0.08);
-      osc.stop(now + idx * 0.08 + 0.16);
-    });
-  } catch (err) {
-    console.log('Audio error:', err);
-  }
+  pools = null;
 }

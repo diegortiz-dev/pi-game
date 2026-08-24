@@ -1,220 +1,182 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-} from 'react-native';
+import React from 'react';
+import { Modal, View, Text, Pressable, Switch, Alert, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { useSettings } from '../hooks/useSettings';
+import { resetProgress } from '../storage/progress';
+import type { BooleanSetting } from '../storage/settings';
+import type { LanguagePreference, StringKey } from '../i18n';
+import { palette } from '../theme';
 import { styles } from './SettingsModal.styles';
+import PiText from './PiText';
 
-export const SFX_KEY = '@pi_game_sfx_enabled';
-export const HAPTICS_KEY = '@pi_game_haptics_enabled';
-export const SHAKE_KEY = '@pi_game_shake_enabled';
+/**
+ * Preferências do app.
+ *
+ * As chaves usam o Switch do React Native em vez de um interruptor montado à
+ * mão com Views, como na versão anterior. O componente nativo já vem com o
+ * comportamento de acessibilidade certo, com a animação da plataforma e com o
+ * alvo de toque no tamanho esperado.
+ */
 
-type SettingsModalProps = {
+type Props = {
   visible: boolean;
   onClose: () => void;
 };
 
-export default function SettingsModal({ visible, onClose }: SettingsModalProps) {
-  const [sfxEnabled, setSfxEnabled] = useState(true);
-  const [hapticsEnabled, setHapticsEnabled] = useState(true);
-  const [shakeEnabled, setShakeEnabled] = useState(true);
+type Option = {
+  key: BooleanSetting;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: StringKey;
+  description: StringKey;
+};
 
-  useEffect(() => {
-    if (visible) {
-      loadSettings();
-    }
-  }, [visible]);
+const OPTIONS: Option[] = [
+  {
+    key: 'sfx',
+    icon: 'volume-high-outline',
+    title: 'settings.sfx',
+    description: 'settings.sfx.desc',
+  },
+  {
+    key: 'haptics',
+    icon: 'phone-portrait-outline',
+    title: 'settings.haptics',
+    description: 'settings.haptics.desc',
+  },
+  {
+    key: 'shake',
+    icon: 'move-outline',
+    title: 'settings.shake',
+    description: 'settings.shake.desc',
+  },
+];
 
-  const loadSettings = async () => {
-    try {
-      const [sfxVal, hapticsVal, shakeVal] = await Promise.all([
-        AsyncStorage.getItem(SFX_KEY),
-        AsyncStorage.getItem(HAPTICS_KEY),
-        AsyncStorage.getItem(SHAKE_KEY),
-      ]);
+const LANGUAGES: { value: LanguagePreference; label: StringKey }[] = [
+  { value: 'auto', label: 'settings.language.auto' },
+  { value: 'pt', label: 'settings.language.pt' },
+  { value: 'en', label: 'settings.language.en' },
+];
 
-      setSfxEnabled(sfxVal !== null ? sfxVal === 'true' : true);
-      setHapticsEnabled(hapticsVal !== null ? hapticsVal === 'true' : true);
-      setShakeEnabled(shakeVal !== null ? shakeVal === 'true' : true);
-    } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
-    }
-  };
+export default function SettingsModal({ visible, onClose }: Props) {
+  const { settings, toggle, setLanguage, reduceMotion, t } = useSettings();
+  const version = Constants.expoConfig?.version ?? '1.0.0';
 
-  const toggleSfx = async () => {
-    const nextVal = !sfxEnabled;
-    setSfxEnabled(nextVal);
-    try {
-      await AsyncStorage.setItem(SFX_KEY, nextVal.toString());
-    } catch (error) {
-      console.error('Erro ao salvar SFX:', error);
-    }
-  };
-
-  const toggleHaptics = async () => {
-    const nextVal = !hapticsEnabled;
-    setHapticsEnabled(nextVal);
-    try {
-      await AsyncStorage.setItem(HAPTICS_KEY, nextVal.toString());
-    } catch (error) {
-      console.error('Erro ao salvar Haptics:', error);
-    }
-  };
-
-  const toggleShake = async () => {
-    const nextVal = !shakeEnabled;
-    setShakeEnabled(nextVal);
-    try {
-      await AsyncStorage.setItem(SHAKE_KEY, nextVal.toString());
-    } catch (error) {
-      console.error('Erro ao salvar Shake:', error);
-    }
+  const confirmReset = () => {
+    Alert.alert(t('settings.reset.title'), t('settings.reset.body'), [
+      { text: t('settings.reset.cancel'), style: 'cancel' },
+      {
+        text: t('settings.reset.confirm'),
+        style: 'destructive',
+        onPress: () => {
+          void resetProgress();
+          onClose();
+        },
+      },
+    ]);
   };
 
   return (
     <Modal
       visible={visible}
-      animationType="fade"
-      transparent={true}
+      animationType="slide"
+      transparent
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
+      <View style={styles.scrim}>
+        <SafeAreaView style={styles.sheet} edges={['bottom']}>
+          <View style={styles.grabber} />
+
           <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <Ionicons name="settings-sharp" size={24} color="#ab8b0c" />
-              <Text style={styles.title}>Configurações</Text>
+            <Text style={styles.title}>{t('settings.title')}</Text>
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.close')}
+              hitSlop={12}
+              style={({ pressed }) => [styles.close, pressed && styles.pressed]}
+            >
+              <Ionicons name="close" size={20} color={palette.text.secondary} />
+            </Pressable>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
+            <View style={styles.group}>
+              {OPTIONS.map((option, index) => (
+                <View
+                  key={option.key}
+                  style={[styles.option, index > 0 && styles.optionDivided]}
+                >
+                  <View style={styles.optionIcon}>
+                    <Ionicons name={option.icon} size={19} color={palette.gold.base} />
+                  </View>
+                  <View style={styles.optionText}>
+                    <Text style={styles.optionTitle}>{t(option.title)}</Text>
+                    <Text style={styles.optionDescription}>{t(option.description)}</Text>
+                  </View>
+                  <Switch
+                    value={settings[option.key]}
+                    onValueChange={() => toggle(option.key)}
+                    accessibilityLabel={t(option.title)}
+                    trackColor={{ false: palette.ink[600], true: palette.gold.dim }}
+                    thumbColor={
+                      settings[option.key] ? palette.gold.bright : palette.text.tertiary
+                    }
+                    ios_backgroundColor={palette.ink[600]}
+                  />
+                </View>
+              ))}
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#8badc9" />
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.optionsList}>
-            {/* Efeitos Sonoros */}
-            <TouchableOpacity
-              style={styles.optionCard}
-              onPress={toggleSfx}
-              activeOpacity={0.8}
+            {/*
+              O tremor pode estar desligado pelo sistema mesmo com a chave acima
+              ligada. Dizer isso evita que a chave pareça quebrada.
+            */}
+            {reduceMotion && settings.shake && (
+              <Text style={styles.note}>{t('settings.reduceMotion')}</Text>
+            )}
+
+            <View style={styles.languageGroup}>
+              <Text style={styles.languageLabel}>{t('settings.language')}</Text>
+              <View style={styles.segmented}>
+                {LANGUAGES.map((item) => {
+                  const active = settings.language === item.value;
+                  return (
+                    <Pressable
+                      key={item.value}
+                      onPress={() => setLanguage(item.value)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      accessibilityLabel={t(item.label)}
+                      style={[styles.segment, active && styles.segmentActive]}
+                    >
+                      <Text
+                        style={[styles.segmentText, active && styles.segmentTextActive]}
+                      >
+                        {t(item.label)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <Pressable
+              onPress={confirmReset}
+              accessibilityRole="button"
+              accessibilityLabel={t('settings.reset')}
+              style={({ pressed }) => [styles.danger, pressed && styles.pressed]}
             >
-              <View style={styles.optionLeft}>
-                <View style={styles.iconBox}>
-                  <Ionicons
-                    name={sfxEnabled ? 'volume-high' : 'volume-mute'}
-                    size={22}
-                    color="#ab8b0c"
-                  />
-                </View>
-                <View style={styles.optionTextWrap}>
-                  <Text style={styles.optionTitle}>Efeitos Sonoros (SFX)</Text>
-                  <Text style={styles.optionSubtitle}>
-                    Sons ao clicar, acertar e errar
-                  </Text>
-                </View>
-              </View>
+              <Ionicons name="trash-outline" size={17} color={palette.accent.danger} />
+              <Text style={styles.dangerText}>{t('settings.reset')}</Text>
+            </Pressable>
 
-              <View
-                style={[
-                  styles.switchTrack,
-                  sfxEnabled ? styles.switchTrackActive : styles.switchTrackInactive,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.switchThumb,
-                    sfxEnabled ? styles.switchThumbActive : styles.switchThumbInactive,
-                  ]}
-                />
-              </View>
-            </TouchableOpacity>
-
-            {/* Vibração Tátil */}
-            <TouchableOpacity
-              style={styles.optionCard}
-              onPress={toggleHaptics}
-              activeOpacity={0.8}
-            >
-              <View style={styles.optionLeft}>
-                <View style={styles.iconBox}>
-                  <Ionicons
-                    name={hapticsEnabled ? 'phone-portrait' : 'phone-portrait-outline'}
-                    size={22}
-                    color="#ab8b0c"
-                  />
-                </View>
-                <View style={styles.optionTextWrap}>
-                  <Text style={styles.optionTitle}>Vibração Tátil (Haptics)</Text>
-                  <Text style={styles.optionSubtitle}>
-                    Resposta ao toque e alertas
-                  </Text>
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.switchTrack,
-                  hapticsEnabled
-                    ? styles.switchTrackActive
-                    : styles.switchTrackInactive,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.switchThumb,
-                    hapticsEnabled
-                      ? styles.switchThumbActive
-                      : styles.switchThumbInactive,
-                  ]}
-                />
-              </View>
-            </TouchableOpacity>
-
-            {/* Animação de Tremor */}
-            <TouchableOpacity
-              style={styles.optionCard}
-              onPress={toggleShake}
-              activeOpacity={0.8}
-            >
-              <View style={styles.optionLeft}>
-                <View style={styles.iconBox}>
-                  <Ionicons name="sparkles" size={22} color="#ab8b0c" />
-                </View>
-                <View style={styles.optionTextWrap}>
-                  <Text style={styles.optionTitle}>Animação de Tremor</Text>
-                  <Text style={styles.optionSubtitle}>
-                    Tremor do painel ao errar o dígito
-                  </Text>
-                </View>
-              </View>
-
-              <View
-                style={[
-                  styles.switchTrack,
-                  shakeEnabled
-                    ? styles.switchTrackActive
-                    : styles.switchTrackInactive,
-                ]}
-              >
-                <View
-                  style={[
-                    styles.switchThumb,
-                    shakeEnabled
-                      ? styles.switchThumbActive
-                      : styles.switchThumbInactive,
-                  ]}
-                />
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.footerNote}>
-            As preferências são salvas automaticamente.
-          </Text>
-        </View>
+            <Text style={styles.footer}>{t('settings.footer')}</Text>
+            <PiText style={styles.footer}>{t('settings.version', { v: version })}</PiText>
+          </ScrollView>
+        </SafeAreaView>
       </View>
     </Modal>
   );

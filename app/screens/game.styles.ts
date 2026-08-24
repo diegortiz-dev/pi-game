@@ -1,388 +1,193 @@
 import { StyleSheet } from 'react-native';
-
-export const COLORS = {
-  bgDark: '#0a1628',
-  bgCard: '#11243d',
-  gold: '#ab8b0c',
-  goldMuted: '#ab8b0c',
-  goldDark: '#7a6308',
-  blueLight: '#5b9bd5',
-  blueMuted: '#8badc9',
-  blueBorder: '#1e3a5f',
-  white: '#ffffff',
-  red: '#c0392b',
-  redBg: '#3d1a1a',
-  green: '#7ec87e',
-  yellow: '#e6c84e',
-};
+import { palette, spacing, radius, type } from '../theme';
 
 export const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: COLORS.bgDark,
+    backgroundColor: palette.ink[800],
+    paddingHorizontal: spacing.lg,
+    /** Garante que a última fileira de teclas nunca encoste na borda. */
+    paddingBottom: spacing.sm,
   },
+
+  /* Cabeçalho ----------------------------------------------------------- */
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 6,
+    paddingVertical: spacing.sm,
   },
-  backButton: {
-    padding: 8,
+  back: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 2,
+    /** Largura fixa nas pontas para o rótulo do modo ficar centrado de fato. */
+    width: 76,
   },
-  backText: {
-    color: COLORS.gold,
-    fontSize: 16,
-    fontWeight: '600',
+  backPressed: {
+    opacity: 0.6,
   },
-  timerContainer: {
-    backgroundColor: COLORS.bgCard,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+  backLabel: {
+    ...type.bodySmall,
+    color: palette.gold.base,
+  },
+  mode: {
+    ...type.label,
+    color: palette.text.secondary,
+  },
+  clock: {
+    width: 76,
+    alignItems: 'flex-end',
+  },
+  clockValue: {
+    ...type.data,
+    color: palette.text.secondary,
+  },
+
+  /* Instrumento --------------------------------------------------------- */
+  gaugeArea: {
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  meta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.lg,
+    marginTop: spacing.md,
+  },
+  metaItem: {
+    ...type.label,
+    color: palette.text.tertiary,
+  },
+  metaValue: {
+    ...type.label,
+    color: palette.gold.bright,
+  },
+
+  /** Fita + teclado. Medida em tempo real para dimensionar as teclas. */
+  play: {
+    flex: 1,
+  },
+
+  /* Avisos durante a partida -------------------------------------------- */
+  retry: {
+    ...type.bodySmall,
+    color: palette.accent.danger,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+  startCue: {
+    ...type.bodySmall,
+    color: palette.text.tertiary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+  },
+
+  /* Resultado ------------------------------------------------------------ */
+  result: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: spacing.xl,
+  },
+  resultTitle: {
+    ...type.label,
+    color: palette.text.secondary,
+  },
+  recordBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: palette.overlay.goldWash,
     borderWidth: 1,
-    borderColor: COLORS.goldDark,
+    borderColor: palette.gold.dim,
+  },
+  recordBadgeText: {
+    ...type.bodySmall,
+    color: palette.gold.bright,
+  },
+  resultGrid: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    alignSelf: 'stretch',
+    marginTop: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: palette.ink[500],
   },
-  timerText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  resultCell: {
+    flex: 1,
+    alignItems: 'center',
   },
-  labelRow: {
+  resultDivider: {
+    width: 1,
+    alignSelf: 'stretch',
+    backgroundColor: palette.ink[500],
+  },
+  resultValue: {
+    ...type.dataLarge,
+    color: palette.text.primary,
+  },
+  resultLabel: {
+    ...type.label,
+    fontSize: 9,
+    color: palette.text.tertiary,
+    marginTop: spacing.xs,
+  },
+  missed: {
+    ...type.body,
+    color: palette.text.secondary,
+    marginTop: spacing.lg,
+  },
+  missedDigit: {
+    ...type.data,
+    fontSize: 18,
+    color: palette.accent.danger,
+  },
+
+  /* Ações ---------------------------------------------------------------- */
+  primaryAction: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    marginTop: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: palette.gold.base,
+  },
+  primaryActionText: {
+    ...type.heading,
+    fontSize: 17,
+    color: palette.ink[900],
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  secondaryAction: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.ink[500],
   },
-  labelRowText: {
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 1,
+  secondaryActionText: {
+    ...type.body,
+    color: palette.text.secondary,
   },
-  scoreContainer: {
-    alignItems: 'center',
-    marginVertical: 12,
-  },
-  scoreLabel: {
-    color: COLORS.blueMuted,
-    fontSize: 14,
-    marginBottom: 4,
-    letterSpacing: 1,
-  },
-  scoreValue: {
-    color: COLORS.gold,
-    fontSize: 48,
-    fontWeight: 'bold',
-  },
-  highScoreText: {
-    color: COLORS.goldMuted,
-    fontSize: 14,
-    marginTop: 4,
-    opacity: 0.8,
-  },
-  hintsUsedText: {
-    color: COLORS.blueMuted,
-    fontSize: 13,
-    marginTop: 2,
+  pressed: {
     opacity: 0.7,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  piDisplayContainer: {
-    marginHorizontal: 16,
-    backgroundColor: COLORS.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    flex: 1,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: COLORS.blueBorder,
-  },
-  piDisplayWrong: {
-    borderColor: COLORS.red,
-  },
-  piDisplayCorrect: {
-    borderColor: COLORS.gold,
-  },
-  piScroll: {
-    flex: 1,
-  },
-  piScrollContent: {
-    flexGrow: 1,
-  },
-  piPrefix: {
-    fontSize: 22,
-    color: COLORS.blueLight,
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
-    lineHeight: 32,
-  },
-  piCursor: {
-    fontSize: 22,
-    color: COLORS.gold,
-    fontFamily: 'monospace',
-  },
-  wrongText: {
-    color: COLORS.red,
-    fontSize: 16,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  wrongRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  keyboard: {
-    paddingHorizontal: 25,
-    gap: 15,
-    paddingBottom: 16,
-    marginTop: 'auto',
-  },
-  keyboardRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 15,
-  },
-  key: {
-    borderRadius: 12,
-    backgroundColor: COLORS.bgCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.goldDark,
-  },
-  keyWrong: {
-    borderColor: COLORS.red,
-    backgroundColor: COLORS.redBg,
-  },
-  hintKey: {
-    borderColor: COLORS.blueBorder,
-    backgroundColor: COLORS.bgCard,
-  },
-  hintKeyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.blueLight,
-  },
-  keyText: {
-    fontSize: 26,
-    color: COLORS.white,
-    fontWeight: 'bold',
-  },
-  keyTextWrong: {
-    color: COLORS.red,
-  },
-  startHint: {
-    color: COLORS.goldMuted,
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 16,
-    fontStyle: 'italic',
-  },
-  gameOverContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(10, 22, 40, 0.97)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-    paddingHorizontal: 30,
-  },
-  gameOverLaurel: {
-    marginBottom: 10,
-  },
-  gameOverTitle: {
-    fontSize: 44,
-    fontWeight: 'bold',
-    color: COLORS.gold,
-    marginBottom: 4,
-    letterSpacing: 4,
-  },
-  gameOverSubtitle: {
-    fontSize: 18,
-    color: COLORS.blueMuted,
-    marginBottom: 20,
-  },
-  gameOverScoreBox: {
-    backgroundColor: COLORS.bgCard,
-    borderWidth: 2,
-    borderColor: COLORS.gold,
-    borderRadius: 12,
-    paddingHorizontal: 40,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  gameOverScoreNumber: {
-    fontSize: 56,
-    fontWeight: 'bold',
-    color: COLORS.gold,
-  },
-  gameOverScoreLabel: {
-    fontSize: 14,
-    color: COLORS.blueMuted,
-    letterSpacing: 1,
-  },
-  gameOverWrong: {
-    fontSize: 16,
-    color: COLORS.red,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  newRecordText: {
-    fontSize: 20,
-    color: COLORS.gold,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  highScoreGameOver: {
-    fontSize: 16,
-    color: COLORS.goldMuted,
-    marginBottom: 12,
-    opacity: 0.8,
-  },
-  hintsUsedGameOver: {
-    fontSize: 15,
-    color: COLORS.blueMuted,
-    opacity: 0.8,
-  },
-  gameOverButtons: {
-    gap: 12,
-    width: '100%',
-    marginTop: 16,
-  },
-  restartButton: {
-    backgroundColor: COLORS.gold,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  restartText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.bgDark,
-  },
-  shareButton: {
-    backgroundColor: COLORS.bgCard,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: COLORS.gold,
-  },
-  shareText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
-  homeButton: {
-    backgroundColor: COLORS.bgCard,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.blueBorder,
-  },
-  homeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-  // ── Streak (Sequência 🔥) ───────────────────────────────────
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(230, 200, 78, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.yellow,
-    marginTop: 4,
-  },
-  streakText: {
-    color: COLORS.yellow,
-    fontSize: 13,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
-  },
-  // ── Toast Banner de Conquista Flutuante ─────────────────────
-  toastContainer: {
-    position: 'absolute',
-    top: 12,
-    left: 16,
-    right: 16,
-    zIndex: 999,
-    alignItems: 'center',
-  },
-  toastContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#11243d',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderWidth: 1.5,
-    borderColor: '#ab8b0c',
-    gap: 12,
-    width: '100%',
-    shadowColor: '#ab8b0c',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  toastIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(171, 139, 12, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ab8b0c',
-  },
-  toastTextWrap: {
-    flex: 1,
-  },
-  toastTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  toastCategory: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#ab8b0c',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  toastTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  toastDesc: {
-    fontSize: 12,
-    color: '#8badc9',
   },
 });

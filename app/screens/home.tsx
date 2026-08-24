@@ -1,147 +1,184 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-} from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../types';
+import { loadProgress, EMPTY_PROGRESS, type Progress } from '../storage/progress';
+import { evaluate, nextInTrack } from '../data/achievements';
+import { CHALLENGE_MS, ERROR_PENALTY_MS } from '../hooks/useGameEngine';
+import BrandMark from '../components/BrandMark';
+import PiText from '../components/PiText';
 import StatsModal from '../components/StatsModal';
 import SettingsModal from '../components/SettingsModal';
+import { palette } from '../theme';
+import { useT } from '../hooks/useSettings';
 import { styles } from './home.styles';
 
-type HomeScreenProps = {
+type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
 
-export default function HomeScreen({ navigation }: HomeScreenProps) {
-  const [statsVisible, setStatsVisible] = useState(false);
-  const [settingsVisible, setSettingsVisible] = useState(false);
+export default function HomeScreen({ navigation }: Props) {
+  const t = useT();
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [progress, setProgress] = useState<Progress>(EMPTY_PROGRESS);
+
+  // Recarrega ao voltar de uma partida, para o recorde aparecer atualizado.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      loadProgress().then((loaded) => {
+        if (active) setProgress(loaded);
+      });
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
+  const achievements = evaluate(progress);
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
+  const challengeSeconds = CHALLENGE_MS / 1000;
+
+  const best = progress.bestChallenge;
+  const started = best > 0;
+  const goal = nextInTrack(progress, 'challenge');
+  const remaining = goal ? goal.target - best : 0;
+  const masteredDigits = progress.masteredBlocks * 10;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <StatusBar style="light" />
 
-      {/* Botão fixo no topo direito */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity
-          style={styles.settingsIconBtn}
-          onPress={() => setSettingsVisible(true)}
-          activeOpacity={0.7}
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => setStatsOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t('home.a11y.achievements', {
+            n: unlockedCount,
+            total: achievements.length,
+          })}
+          style={({ pressed }) => [styles.headerButton, pressed && styles.pressed]}
         >
-          <Ionicons name="settings-outline" size={20} color="#8badc9" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.statsIconBtn}
-          onPress={() => setStatsVisible(true)}
-          activeOpacity={0.7}
+          <Ionicons name="trophy-outline" size={16} color={palette.gold.base} />
+          <Text style={styles.headerButtonText}>
+            {unlockedCount}/{achievements.length}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setSettingsOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel={t('home.a11y.settings')}
+          style={({ pressed }) => [styles.headerIcon, pressed && styles.pressed]}
         >
-          <Ionicons name="trophy-outline" size={20} color="#ab8b0c" />
-          <Text style={styles.statsBtnText}>Conquistas</Text>
-        </TouchableOpacity>
+          <Ionicons name="settings-outline" size={18} color={palette.text.secondary} />
+        </Pressable>
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
+        {/*
+          A composição é centrada porque o herói é um disco: centralizar segue a
+          forma do próprio elemento.
+        */}
+        <View style={styles.hero}>
+          <BrandMark />
 
-        <View style={styles.laurelContainer}>
-          <Image
-            source={require('../../assets/iconeprincipal.png')}
-            style={styles.appIcon}
-          />
+          {started ? (
+            <View style={styles.readout}>
+              <Text style={styles.record}>{best}</Text>
+              <Text style={styles.recordLabel}>
+                {t(best === 1 ? 'home.record.one' : 'home.record.other')}
+              </Text>
+              {goal && (
+                <PiText style={styles.goal}>
+                  {t(remaining === 1 ? 'home.goal.one' : 'home.goal.other', {
+                    n: remaining,
+                    title: t(goal.titleKey),
+                  })}
+                </PiText>
+              )}
+            </View>
+          ) : (
+            <View style={styles.readout}>
+              <PiText style={styles.tagline}>{t('home.tagline')}</PiText>
+            </View>
+          )}
         </View>
 
-        <Text style={styles.title}>π- O jogo</Text>
-        <Text style={styles.subtitle}>
-          Quantos dígitos de π você conhece?
-        </Text>
-        <Text style={styles.greekQuote}>
-          «Ἀεὶ ὁ θεὸς ὁ μέγας γεωμετρεῖ τὸ σύμπαν» — O grande Deus sempre aplica a geometria ao universo
-        </Text>
+        {/*
+          Aprender vem primeiro de propósito: é a porta de entrada. Quem ainda
+          não sabe nenhum dígito não tem o que fazer no Desafio, e mandar essa
+          pessoa direto para o cronômetro é oferecer só a derrota.
+        */}
+        <View style={styles.modes}>
+          <Pressable
+            onPress={() => navigation.navigate('Learn')}
+            accessibilityRole="button"
+            accessibilityLabel={
+              masteredDigits === 0
+                ? t('home.a11y.learn.fresh')
+                : t('home.a11y.learn.progress', { n: masteredDigits })
+            }
+            style={({ pressed }) => [styles.mode, pressed && styles.modePressed]}
+          >
+            <Ionicons name="school-outline" size={26} color={palette.gold.bright} />
+            <Text style={styles.modeTitle}>{t('home.learn')}</Text>
+            <Text style={styles.modeMeta}>
+              {masteredDigits === 0
+                ? t('home.learn.fresh')
+                : t('home.learn.progress', { n: masteredDigits })}
+            </Text>
+            <Ionicons name="chevron-forward" size={20} color={palette.text.tertiary} />
+          </Pressable>
 
-        <View style={styles.buttonsContainer}>
-
-          {/* Botão Desafio — layout horizontal estilo Spotify/Netflix */}
-          <TouchableOpacity
-            style={[styles.modeCard, styles.timerCard]}
+          <Pressable
             onPress={() => navigation.navigate('Game', { mode: 'timer' })}
-            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={t('home.a11y.challenge', {
+              seconds: challengeSeconds,
+              penalty: ERROR_PENALTY_MS / 1000,
+            })}
+            style={({ pressed }) => [
+              styles.mode,
+              styles.modeDivided,
+              pressed && styles.modePressed,
+            ]}
           >
-            {/* Badge com ícone à esquerda */}
-            <View style={[styles.cardIconWrap, styles.timerIconWrap]}>
-              <Ionicons name="hourglass" size={36} color="#ab8b0c" />
-            </View>
+            <Ionicons name="timer-outline" size={26} color={palette.text.secondary} />
+            <Text style={styles.modeTitle}>{t('home.challenge')}</Text>
+            <Text style={styles.modeMeta}>{challengeSeconds}s</Text>
+            <Ionicons name="chevron-forward" size={20} color={palette.text.tertiary} />
+          </Pressable>
 
-            {/* Conteúdo textual */}
-            <View style={styles.cardTextBlock}>
-              <View style={styles.cardTitleRow}>
-                <Text style={[styles.cardTitle, styles.timerTitle]}>Desafio</Text>
-                <View style={styles.timerBadgeLabel}>
-                  <Ionicons name="time-outline" size={12} color="#ab8b0c" />
-                  <Text style={styles.timerBadgeLabelText}>60s</Text>
-                </View>
-              </View>
-              <Text style={styles.cardDesc}>
-                Acerte o máximo de dígitos antes do tempo acabar!
-              </Text>
-            </View>
-
-            {/* Seta de ação */}
-            <Ionicons name="chevron-forward" size={22} color="#ab8b0c" style={styles.cardChevron} />
-          </TouchableOpacity>
-
-          {/* Botão Prática — layout horizontal estilo Spotify/Netflix */}
-          <TouchableOpacity
-            style={[styles.modeCard, styles.practiceCard]}
+          <Pressable
             onPress={() => navigation.navigate('Game', { mode: 'practice' })}
-            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={t('home.a11y.practice')}
+            style={({ pressed }) => [
+              styles.mode,
+              styles.modeDivided,
+              pressed && styles.modePressed,
+            ]}
           >
-            {/* Badge com ícone à esquerda */}
-            <View style={[styles.cardIconWrap, styles.practiceIconWrap]}>
-              <Ionicons name="book" size={36} color="#5b9bd5" />
-            </View>
-
-            {/* Conteúdo textual */}
-            <View style={styles.cardTextBlock}>
-              <View style={styles.cardTitleRow}>
-                <Text style={[styles.cardTitle, styles.practiceTitle]}>Prática</Text>
-                <View style={styles.practiceBadgeLabel}>
-                  <Ionicons name="infinite-outline" size={12} color="#5b9bd5" />
-                  <Text style={styles.practiceBadgeLabelText}>Livre</Text>
-                </View>
-              </View>
-              <Text style={styles.cardDesc}>
-                Pratique sem pressão e aprenda no seu ritmo!
-              </Text>
-            </View>
-
-            {/* Seta de ação */}
-            <Ionicons name="chevron-forward" size={22} color="#5b9bd5" style={styles.cardChevron} />
-          </TouchableOpacity>
+            <Ionicons name="infinite-outline" size={26} color={palette.text.secondary} />
+            <Text style={styles.modeTitle}>{t('home.practice')}</Text>
+            <Text style={styles.modeMeta}>{t('home.practice.meta')}</Text>
+            <Ionicons name="chevron-forward" size={20} color={palette.text.tertiary} />
+          </Pressable>
         </View>
 
-        <View style={styles.footerContainer}>
-          <Text style={styles.footer}>Feito por Diego Ortiz</Text>
-        </View>
+        <Text style={styles.credit}>{t('home.credit')}</Text>
       </ScrollView>
 
-      <StatsModal
-        visible={statsVisible}
-        onClose={() => setStatsVisible(false)}
-      />
-      <SettingsModal
-        visible={settingsVisible}
-        onClose={() => setSettingsVisible(false)}
-      />
+      <StatsModal visible={statsOpen} onClose={() => setStatsOpen(false)} />
+      <SettingsModal visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </SafeAreaView>
   );
 }
-
-// styles moved to home.styles.ts

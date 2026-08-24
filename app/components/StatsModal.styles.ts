@@ -1,211 +1,209 @@
 import { StyleSheet } from 'react-native';
+import { palette, spacing, radius, type } from '../theme';
 
 export const styles = StyleSheet.create({
-  overlay: {
+  scrim: {
     flex: 1,
-    backgroundColor: 'rgba(10, 22, 40, 0.85)',
     justifyContent: 'flex-end',
+    backgroundColor: palette.overlay.scrim,
   },
-  container: {
-    backgroundColor: '#0a1628',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '88%',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 30,
-    borderWidth: 1,
-    borderColor: '#1e3a5f',
+  sheet: {
+    maxHeight: '92%',
+    backgroundColor: palette.ink[800],
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderTopWidth: 1,
+    borderColor: palette.ink[500],
+    paddingHorizontal: spacing.lg,
   },
+  grabber: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: radius.pill,
+    backgroundColor: palette.ink[500],
+    marginTop: spacing.md,
+  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#11243d',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    paddingVertical: spacing.lg,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    ...type.heading,
+    color: palette.text.primary,
   },
-  closeButton: {
-    padding: 6,
-  },
-  scrollContent: {
-    marginTop: 16,
-  },
-  sectionHeader: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#8badc9',
-    marginBottom: 12,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
-  },
-  statCard: {
-    width: '48%',
-    backgroundColor: '#11243d',
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#1e3a5f',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginVertical: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#8badc9',
-  },
-
-  // ── Abas de Filtro ──────────────────────────────────────────
-  filterTabsRow: {
-    flexDirection: 'row',
-    backgroundColor: '#11243d',
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 16,
-    gap: 4,
-  },
-  filterTab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  filterTabActive: {
-    backgroundColor: '#ab8b0c',
-  },
-  filterTabText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#8badc9',
-  },
-  filterTabTextActive: {
-    color: '#0a1628',
-    fontWeight: 'bold',
-  },
-
-  achievementProgressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  progressPercent: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ab8b0c',
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: '#11243d',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#ab8b0c',
-    borderRadius: 4,
-  },
-  achievementsList: {
-    gap: 10,
-    paddingBottom: 20,
-  },
-  achievementCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#11243d',
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    gap: 12,
-  },
-  achievementUnlocked: {
-    borderColor: '#ab8b0c',
-  },
-  achievementLocked: {
-    borderColor: '#1e3a5f',
-    opacity: 0.85,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  close: {
+    width: 34,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.ink[500],
   },
-  iconCircleUnlocked: {
-    backgroundColor: 'rgba(171, 139, 12, 0.15)',
+  pressed: {
+    opacity: 0.65,
   },
-  iconCircleLocked: {
-    backgroundColor: '#0a1628',
+
+  body: {
+    paddingBottom: spacing.xxl,
+    gap: spacing.lg,
   },
-  achievementInfo: {
-    flex: 1,
+
+  /* Resumo --------------------------------------------------------------- */
+  summary: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    borderTopWidth: 1,
+    borderColor: palette.ink[500],
   },
-  achievementTitleRow: {
+  summaryCell: {
+    width: '33.33%',
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: palette.ink[500],
+  },
+  summaryValue: {
+    ...type.dataLarge,
+    fontSize: 22,
+    color: palette.text.primary,
+  },
+  summaryLabel: {
+    ...type.label,
+    fontSize: 8,
+    color: palette.text.tertiary,
+    marginTop: spacing.xs,
+    textAlign: 'center',
+  },
+
+  /* Cabeçalho de seção --------------------------------------------------- */
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+  },
+  sectionTitle: {
+    ...type.label,
+    color: palette.text.secondary,
+  },
+  sectionPercent: {
+    ...type.data,
+    fontSize: 13,
+    color: palette.gold.bright,
+  },
+
+  /* Barra de progresso --------------------------------------------------- */
+  track: {
+    height: 3,
+    borderRadius: radius.pill,
+    backgroundColor: palette.ink[600],
+    overflow: 'hidden',
+  },
+  trackFill: {
+    height: '100%',
+    borderRadius: radius.pill,
+  },
+  trackFillDone: {
+    backgroundColor: palette.gold.bright,
+  },
+  trackFillPending: {
+    backgroundColor: palette.ink[500],
+  },
+
+  /* Filtros -------------------------------------------------------------- */
+  filters: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  filter: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: palette.ink[500],
+  },
+  filterActive: {
+    borderColor: palette.gold.base,
+    backgroundColor: palette.overlay.goldWash,
+  },
+  filterText: {
+    ...type.bodySmall,
+    color: palette.text.tertiary,
+  },
+  filterTextActive: {
+    color: palette.gold.bright,
+  },
+
+  empty: {
+    ...type.body,
+    color: palette.text.tertiary,
+    textAlign: 'center',
+    paddingVertical: spacing.xl,
+  },
+
+  /* Conquistas ----------------------------------------------------------- */
+  list: {
+    gap: spacing.sm,
+  },
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+  },
+  cardUnlocked: {
+    borderColor: palette.gold.dim,
+    backgroundColor: palette.ink[700],
+  },
+  cardLocked: {
+    borderColor: palette.ink[500],
+    backgroundColor: 'transparent',
+  },
+  cardIcon: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.sm,
+    backgroundColor: palette.ink[900],
+  },
+  cardIconUnlocked: {
+    backgroundColor: palette.overlay.goldWash,
+  },
+  cardBody: {
+    flex: 1,
+    gap: 3,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    gap: spacing.sm,
   },
-  achievementTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#ffffff',
+  cardTitle: {
+    ...type.body,
+    fontFamily: type.heading.fontFamily,
+    color: palette.text.primary,
+    flexShrink: 1,
   },
-  textLocked: {
-    color: '#8badc9',
+  cardTitleLocked: {
+    color: palette.text.secondary,
   },
-  achievementDesc: {
+  cardMetric: {
+    ...type.label,
+    fontSize: 10,
+    letterSpacing: 0.5,
+    color: palette.text.tertiary,
+  },
+  cardDescription: {
+    ...type.bodySmall,
     fontSize: 12,
-    color: '#8badc9',
-    marginBottom: 6,
-  },
-  metricText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#ab8b0c',
-  },
-  metricTextLocked: {
-    color: '#5b9bd5',
-  },
-  itemProgressBarBg: {
-    height: 4,
-    backgroundColor: '#0a1628',
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginTop: 2,
-  },
-  itemProgressBarFill: {
-    height: '100%',
-    backgroundColor: '#ab8b0c',
-    borderRadius: 2,
-  },
-  itemProgressBarFillLocked: {
-    backgroundColor: '#5b9bd5',
-  },
-  emptyListText: {
-    textAlign: 'center',
-    color: '#4a6080',
-    fontSize: 14,
-    marginVertical: 20,
-    fontStyle: 'italic',
+    color: palette.text.tertiary,
   },
 });

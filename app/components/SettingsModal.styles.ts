@@ -1,123 +1,161 @@
 import { StyleSheet } from 'react-native';
+import { palette, spacing, radius, type } from '../theme';
 
 export const styles = StyleSheet.create({
-  overlay: {
+  scrim: {
     flex: 1,
-    backgroundColor: 'rgba(10, 22, 40, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'flex-end',
+    backgroundColor: palette.overlay.scrim,
   },
-  container: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: '#0a1628',
-    borderRadius: 24,
-    paddingHorizontal: 22,
-    paddingTop: 20,
-    paddingBottom: 24,
-    borderWidth: 1,
-    borderColor: '#1e3a5f',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    elevation: 10,
+  sheet: {
+    maxHeight: '86%',
+    backgroundColor: palette.ink[800],
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    borderTopWidth: 1,
+    borderColor: palette.ink[500],
+    paddingHorizontal: spacing.lg,
   },
+  grabber: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: radius.pill,
+    backgroundColor: palette.ink[500],
+    marginTop: spacing.md,
+  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#11243d',
-    marginBottom: 16,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    paddingVertical: spacing.lg,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    ...type.heading,
+    color: palette.text.primary,
   },
-  closeButton: {
-    padding: 6,
-  },
-  optionsList: {
-    gap: 14,
-    marginBottom: 20,
-  },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#11243d',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#1e3a5f',
-  },
-  optionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flex: 1,
-  },
-  iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(171, 139, 12, 0.12)',
+  close: {
+    width: 34,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: 'rgba(171, 139, 12, 0.3)',
+    borderColor: palette.ink[500],
   },
-  optionTextWrap: {
+  pressed: {
+    opacity: 0.65,
+  },
+
+  body: {
+    paddingBottom: spacing.xxl,
+    gap: spacing.lg,
+  },
+
+  /* Opções --------------------------------------------------------------- */
+  group: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: palette.ink[500],
+    backgroundColor: palette.ink[700],
+    overflow: 'hidden',
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  /** Fio entre opções, em vez de um cartão por opção. */
+  optionDivided: {
+    borderTopWidth: 1,
+    borderColor: palette.ink[500],
+  },
+  optionIcon: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.sm,
+    backgroundColor: palette.ink[900],
+  },
+  optionText: {
     flex: 1,
+    gap: 2,
   },
   optionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 2,
+    ...type.body,
+    color: palette.text.primary,
   },
-  optionSubtitle: {
+  optionDescription: {
+    ...type.bodySmall,
     fontSize: 12,
-    color: '#8badc9',
+    color: palette.text.tertiary,
   },
-  switchTrack: {
-    width: 52,
-    height: 30,
-    borderRadius: 15,
-    padding: 3,
+
+  /** Explica quando o sistema está anulando uma chave do app. */
+  note: {
+    ...type.bodySmall,
+    fontSize: 12,
+    color: palette.text.tertiary,
+    lineHeight: 18,
+  },
+
+  /* Idioma --------------------------------------------------------------- */
+  languageGroup: {
+    gap: spacing.sm,
+  },
+  languageLabel: {
+    ...type.label,
+    color: palette.text.secondary,
+  },
+  segmented: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  segment: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.ink[500],
+  },
+  segmentActive: {
+    borderColor: palette.gold.base,
+    backgroundColor: palette.overlay.goldWash,
+  },
+  segmentText: {
+    ...type.bodySmall,
+    color: palette.text.tertiary,
+  },
+  segmentTextActive: {
+    color: palette.gold.bright,
+  },
+
+  /* Ação destrutiva ------------------------------------------------------ */
+  danger: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.accent.danger,
   },
-  switchTrackActive: {
-    backgroundColor: '#ab8b0c',
+  dangerText: {
+    ...type.body,
+    color: palette.accent.danger,
   },
-  switchTrackInactive: {
-    backgroundColor: '#1e3a5f',
-  },
-  switchThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-  },
-  switchThumbActive: {
-    alignSelf: 'flex-end',
-  },
-  switchThumbInactive: {
-    alignSelf: 'flex-start',
-  },
-  footerNote: {
+
+  footer: {
+    ...type.bodySmall,
     fontSize: 12,
-    color: '#4a6080',
+    color: palette.text.tertiary,
     textAlign: 'center',
-    marginTop: 4,
+    lineHeight: 19,
   },
 });
