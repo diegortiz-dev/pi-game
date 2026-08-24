@@ -53,7 +53,8 @@
           "backgroundColor": "#0A1628"
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-asset"
     ],
     "backgroundColor": "#0A1628",
     "extra": {
